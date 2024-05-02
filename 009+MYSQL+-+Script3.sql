@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS `CLIENTE2`.`product` (
   `package` VARCHAR(30) NULL,
   `isdiscontinued` BIT NULL,
   PRIMARY KEY (`id`),
-  INDEX `fk_product_Supplier1_idx` (`supplierid` ASC) VISIBLE,
+  -- INDEX `fk_product_Supplier1_idx` (`supplierid` ASC) VISIBLE,
   CONSTRAINT `fk_product_Supplier1`
     FOREIGN KEY (`supplierid`)
     REFERENCES `CLIENTE2`.`Supplier` (`id`)
@@ -644,13 +644,13 @@ SELECT  O.OrderNumber, OrderDate AS Datetime,
 ORDER BY O.OrderNumber;
 
 
-SELECT O.OrderNumber, CONVERT(O.OrderDate, date) AS Data, 
+SELECT O.OrderNumber, CONVERT(O.OrderDate, date) AS Data, -- conversão na consulta DATETIME p/ date -- SQL SERVER é ao contrário CONVERT(date, O.OrderDate)
        P.ProductName, I.Quantity, I.UnitPrice 
   FROM cliente2.Order O 
   JOIN OrderItem I ON O.Id = I.OrderId 
   JOIN Product P ON P.Id = I.ProductId
 ORDER BY O.OrderNumber;
--- A FUNCAO CONVERT no SQL SERVER, primeiro vem para qual tipo quer converter, mas se rodar desta forma no musql da errp.
+-- A FUNCAO CONVERT no SQL SERVER, primeiro vem para qual tipo quer converter, mas se rodar desta forma no mysql da erro.
 
 SELECT O.OrderNumber, CONVERT(O.OrderDate, date) AS Data, 
        P.ProductName, I.Quantity, I.UnitPrice 
@@ -664,19 +664,23 @@ ORDER BY O.OrderNumber;
 SELECT  C.FirstName, C.LastName, SUM(O.TotalAmount) AS SOMA
   FROM cliente2.Order O 
   INNER JOIN Customer C ON O.CustomerId = C.Id
- GROUP BY C.FirstName, C.LastName
+ GROUP BY C.FirstName, C.LastName -- agrupar para não ter repetição
  ORDER BY SOMA DESC;
 
 -- LEFT JOIN
 -- Problema: liste todos os clientes, independentemente de terem feito pedidos ou não
 
 SELECT c.FirstName, c.LastName, c.City, c.Country, o.OrderNumber, o.TotalAmount
-  FROM Customer C LEFT JOIN cliente2.Order O
+  FROM Customer C LEFT JOIN cliente2.Order O -- retorna valores nulos pois há customers que não tem dados correlacionados com order
     ON O.CustomerId = C.Id
  ORDER BY TotalAmount;
 
 -- RIGHT JOIN
 -- Problema: Liste os clientes que não fizeram pedidos
+
+SELECT FirstName, LastName, City, Country,  TotalAmount
+  FROM cliente2.Order O RIGHT JOIN Customer C
+    ON O.CustomerId = C.Id;
 
 SELECT FirstName, LastName, City, Country,  TotalAmount
   FROM cliente2.Order O RIGHT JOIN Customer C
@@ -686,11 +690,11 @@ SELECT FirstName, LastName, City, Country,  TotalAmount
 -- SQL UNION
 -- Problema: Liste todas as empresas, incluindo fornecedores e clientes.
 
-SELECT 'Customer' As Type, 
-       FirstName + ' ' + LastName AS ContactName, 
+SELECT 'Customer' As Type,  
+       FirstName + ' ' + LastName AS ContactName, -- Usar CONCAT() no MySQL
        City, Country, Phone
   FROM Customer
-UNION
+UNION -- mesmo tipo primitivo dos atributos e quantidade de colunas entre ambas consultas
 SELECT 'Supplier', 
        ContactName, City, Country, Phone
   FROM Supplier;
@@ -698,7 +702,7 @@ SELECT 'Supplier',
 
 -- usar no mysql a funcao CONCAT 
 SELECT 'Customer' As Type, 
-       CONCAT( FirstName, ' ', LastName ) AS ContactName, 
+       CONCAT(firstName, ' ', LastName) AS ContactName, -- usando ' ' espaço em branco para separar firstname de lastname 
        City, Country, Phone
   FROM Customer
 UNION
@@ -712,13 +716,23 @@ SELECT 'Supplier',
 
 SELECT ProductName
   FROM Product
- WHERE Id IN (1,2);
+ WHERE Id IN (1,2); -- subquery dentro da mesma tabela
 
-SELECT ProductName
+SELECT ProductName -- normalmente JOIN é mais rápido
   FROM Product P
- WHERE Id IN (SELECT O.ProductId 
+ WHERE Id IN (SELECT O.ProductId -- retorna a subquey p/ query externa, comparando com o id IN (outra tabela)
                 FROM OrderItem O
                WHERE Quantity > 10);
+               
+SELECT ProductName
+  FROM Product P
+ WHERE Id NOT IN (SELECT O.ProductId -- retorna a subquey p/ query externa, comparando com o id IN (outra tabela)
+                FROM OrderItem O
+               WHERE Quantity > 10);
+               
+SELECT O.ProductId
+FROM OrderItem O
+WHERE Quantity > 10;
                
 
 -- Problema: Liste todos os clientes com seu número total de pedidos
@@ -727,14 +741,14 @@ SELECT c.ID, FirstName, LastName,
        OrderCount = (SELECT COUNT(O.Id) 
                        FROM cliente2.Order O 
                       WHERE O.CustomerId = C.Id)
-  FROM Customer C ;
+  FROM Customer C ; -- SQL SERVER
   -- NO SQL SERVER poderia ser assim, mas no MYSQL vai dar erro devido a criacao do campo ORDERCOUNT
  
  -- ira para cada cliente, ler a tabela de ordens e vai veirificar a quantidade de pedidos.
- SELECT FirstName, LastName, 
-      (SELECT avg
+ SELECT FirstName, LastName,
+      (SELECT COUNT(O.Id) 
                        FROM cliente2.Order O 
-                      WHERE O.CustomerId = C.Id)  as OrderCount
+                      WHERE O.CustomerId = C.Id)  as OrderCount -- MySQL
   FROM Customer C ;
   
 -- SQL EXISTS SUBQUERIE
@@ -742,30 +756,47 @@ SELECT c.ID, FirstName, LastName,
 
 SELECT  CompanyName
   FROM Supplier
- WHERE EXISTS
-       (SELECT 1 -- aqui como nao vou trazer productname poderia colocar valor 1
+ WHERE EXISTS -- muito usado também (Ideal usar EXISTS ou NOT EXISTS ao invés de IN, pois perde menos performance.)
+       (SELECT 1 -- (poductname) aqui como nao vou trazer productname poderia colocar valor 1 para se referir a verdadeiro
           FROM Product
-         WHERE Product.SupplierId = Supplier.Id 
+         WHERE Product.SupplierId = Supplier.Id -- passando id de supplier
            AND UnitPrice > 100)	;
            
+SELECT  CompanyName
+  FROM Supplier s
+ WHERE s.id IN (SELECT p.supplierid -- menos performática que o exemplo de cima
+          FROM Product p
+           WHERE p.UnitPrice > 100)	;
+
+SELECT productname -- não quero saber o nome do produto, mas o fornecedor
+FROM Product
+WHERE UnitPrice > 100;
 		
 -- Problema: E com NOT EXIST, posso encontrar fornecedores com produtos abaixo e igual de $ 100.
            
 SELECT CompanyName
   FROM Supplier
- WHERE NOT EXISTS
+ WHERE NOT EXISTS -- oposto
        (SELECT ProductName
           FROM Product
          WHERE Product.SupplierId = Supplier.Id 
            AND UnitPrice > 100)	;
+
+-- Pode-se ter várias subquerys. Sempre que possível, evitar subquery, preferir os JOINS.
  
 -- SQL HAVING 
 -- Problema: liste o número de clientes em cada país, exceto os EUA, classificados do alto para o baixo. Inclui apenas países com 9 ou mais clientes.
 SELECT  Country , COUNT(Id) as qt
   FROM Customer
- WHERE Country <> 'USA'
+ WHERE Country <> 'USA' -- ou !=
  GROUP BY Country
-HAVING qt >= 9
+HAVING qt >= 9 -- usa-se junto com group by, depois dele (parecido com WHERE, mas não se pode usar where aqui)
+ ORDER BY qt DESC; -- SQL server dá erro usando apelido
+ 
+ SELECT  Country , COUNT(Id) as qt
+  FROM Customer
+ WHERE Country <> 'USA' -- AND qt >= 9 (não funciona)
+ GROUP BY Country
  ORDER BY qt DESC;
 
 -- Problema: liste todos os clientes com pedidos médios entre $ 1000 e $ 1200.
@@ -773,23 +804,25 @@ SELECT FirstName, LastName, AVG(TotalAmount) as media
   FROM cliente2.Order O 
   JOIN Customer C ON O.CustomerId = C.Id
     GROUP BY FirstName, LastName
-      HAVING AVG(TotalAmount) BETWEEN 1000 AND 1200;
+      HAVING media BETWEEN 1000 AND 1200; -- filtragem de group by
 
 -- SQL SELECT INTO 
 -- Problema: Copie todos os fornecedores dos EUA para uma nova tabela SupplierUSA.
 
-SELECT * INTO SupplierUSA
+SELECT * INTO SupplierUSA -- não funciona no MySQL, apenas SQL Server
   FROM Supplier
  WHERE Country = 'USA';
  -- NO SQL SERVER, voce consegue crar uma tabela inexistente com select into mas no MYSQL nao funciona
  
- CREATE TABLE SupplierUSA SELECT * FROM Supplier WHERE Country = 'USA';
+ CREATE TABLE IF NOT EXISTS SupplierUSA
+ SELECT * FROM Supplier 
+ WHERE Country = 'USA';
  -- Para criar uma tabela nova no MYSQL a partir de dados vindos de outra tabela 
 
- select * from SupplierUSA;
- select * from Supplier;
+ select * from SupplierUSA; -- tabela criado a partir de outra
+ select * from Supplier; -- tabela original
  
- drop table SupplierUSA;
+ drop table SupplierUSA; -- apaga a estrutura da tabela, não somente os dados
 
 -------------------------------
 ------ UPDATES
