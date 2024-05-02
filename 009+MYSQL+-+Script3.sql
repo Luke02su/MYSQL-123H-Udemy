@@ -834,7 +834,7 @@ UPDATE Supplier
    SET City = 'Oslo', 
        Phone = '(0)1-953530', 
        Fax = '(0)1-953555'
- WHERE Id = 2;
+ WHERE Id = 2; -- CUIDADO. Fazer backup antes. importante especificar WHERE, caso contrário todos os dados serim atualizados
  
 select * from Supplier where Id = 2;
 
