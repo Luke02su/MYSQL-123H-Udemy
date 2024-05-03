@@ -798,10 +798,10 @@ SELECT * INTO SupplierUSA
 select * from Supplier where Id = 2;
 
 UPDATE Supplier
-   SET City = 'Oslo', 
+   SET City = 'Oslo', -- altera determinado dado de certa coluna
        Phone = '(0)1-953530', 
        Fax = '(0)1-953555'
- WHERE Id = 2;
+ WHERE Id = 2; -- se esquecer de usar a cláusula WHERE, altera de todas as linhas 
  
 select * from Supplier where Id = 2;
 
@@ -815,7 +815,7 @@ select * from Product;
 START TRANSACTION;
 UPDATE Product
    SET IsDiscontinued = 0 
-      where IsDiscontinued=1;
+      where IsDiscontinued=1; -- quando não é chave primária dá erro no where
 select * from Product;
 
 -- SE AO RODAR RECEBER ESTE ERRO:
@@ -835,7 +835,7 @@ select * from Product;
 
 -- E AGORA DE UMA FORMA DIFERENTE SEM COLOCAR A PK NO WHERE
 
-SET SQL_SAFE_UPDATES = 0;
+SET SQL_SAFE_UPDATES = 0; -- burlar o uso do id
 START TRANSACTION;
 UPDATE Product
    SET IsDiscontinued = 0 
@@ -870,13 +870,13 @@ ROLLBACK;
 
 -- POSSO USAR APENAS O BEGIN AO INVES DO START TRANSACTON, AGORA NAO PRECISO MAIS COLOCAR A PK NO WHERE OU USAR SQL_SAFE_UPDATES = 0 PARA NAO DAR ERRO
 
-BEGIN ;
+BEGIN ; 
 UPDATE Product 
    SET IsDiscontinued = 1, ProductName = 'TESTE'  
  WHERE UnitPrice = 97.00;
 select * from Product;
 
-COMMIT;
+COMMIT; -- não é possivel rolback (voltar)
 select * from Product;
 
 -------------------------------
