@@ -69,23 +69,59 @@ select   *
 FROM vw_custumerMadrid
 where phone like '%555%';
 
-BEGIN;
+BEGIN; -- fica apenas no log (segurança)
 delete from vw_custumerMadrid
 where phone like '%555%';
+-- poderia ter mais blocos com insert, update etc (principalmente se forem dependentes, pois se o servidor cair, volta tudo, sem ser parcial a volta)
+-- se der commit, commita todo o bloco, mesma coisa para o rollback
+-- sempre dar commit depois
 
-select   *
+select   * -- apagado não definitivamente
 FROM vw_custumerMadrid
 where phone like '%555%';
 
-ROLLBACK;
+ROLLBACK; -- retornando para estado anterior, como pode ser visto logo abaixo
 
 select   *
 FROM vw_custumerMadrid
 where phone like '%555%';
 
 -- View com Join
+-- View (recupera dados) é sempre para select, nunca para updates, deletes etc.
+CREATE VIEW dailysales AS
+SELECT
+    year(orderdate) AS y, -- retirando o ano de DATETIME por meio da função YEAR
+    month(orderdate) AS m, -- -- retirando o mês de DATETIME por meio da função MONTH
+    day(orderdate) AS d, -- retirando o dia de DATETIME por meio da função DAY
+    p.id,
+    productname,
+    quantity * i.unitprice AS sales --  multiplicando quantidade e preço para obter as vendas (duas colunas)
+FROM
+    CLIENTE2.Order AS o
+INNER JOIN orderitem AS i
+    ON o.id = i.orderid
+INNER JOIN product AS p
+    ON p.id = i.productid; 
+-- Não se pode ordenar (ORDER BY) dentro da criação da view, pois dá erro. Usa-se quando se chama a view pelo SELECT
 
-CREATE VIEW dailysales
+-- Depois apenas rode
+
+SELECT *  FROM dailysales ORDER BY y, m, d, sales desc; -- poderia apenas rodar esse comando após a view de dailysales criada, não tendo a necessidade de reutilizar aquele bloco grande e compleco de novo
+
+select y as ano, m as mes, sum(sales) as VendasMes -- somando vendas do mês pelo agrupamento (y e m foram criadas dentro da view)
+	from dailysales
+	group by y, m -- agrupando por ano e mês (como só há 1 mês, não faz diferença agrupar por mês)
+	order by ano ASC, mes DESC;
+
+select y as ano, avg(sales) as VendasmediaANO -- média de cada ano
+	from dailysales
+	group by ano -- poderia usar y (ano ou y se referem a mesma coluna)
+	order by Y asc;
+
+-- PARA ALTERAR A VIEW ACRESCENTANDO DADOS DO CLIENTE
+
+-- CREATE OR ALTER VIEW FUNCIONA APENAS NO SQL SERVER. 
+CREATE OR ALTER VIEW dailysales -- cria ou altera caso já estista a view dailysales
 AS
 SELECT
     year(orderdate) AS y,
@@ -93,32 +129,19 @@ SELECT
     day(orderdate) AS d,
     p.id,
     productname,
-    quantity * i.unitprice AS sales
+    quantity * i.unitprice AS sales,
+    c.FIRSTNAME, 
+    c.LASTNAME
 FROM
     CLIENTE2.Order AS o
+INNER JOIN customer as c
+    ON c.id = o.customerid 
 INNER JOIN orderitem AS i
     ON o.id = i.orderid
 INNER JOIN product AS p
     ON p.id = i.productid;
-
--- Depois apenas rode
-
-SELECT *  FROM dailysales ORDER BY y, m, d, sales desc;
-
-select y as ano, m as mes, sum(sales) as VendasMes
-	from dailysales
-	group by y, m
-	order by ano ASC, mes DESC;
-
-select y as ano, avg(sales) as VendasmediaANO
-	from dailysales
-	group by ANO
-	order by Y asc;
-
--- PARA ALTERAR A VIEW ACRESCENTANDO DADOS DO CLIENTE
-
--- CREATE OR ALTER VIEW FUNCIONA APENAS NO SQL SERVER. 
-CREATE OR ALTER VIEW dailysales
+    
+ALTER VIEW dailysales -- alterando view no MySQL
 AS
 SELECT
     year(orderdate) AS y,
@@ -140,22 +163,23 @@ INNER JOIN product AS p
 
 SELECT *  FROM dailysales ORDER BY y, m, d, sales desc;
 
-SELECT  CONCAT(FirstName , ' ' , LastName) AS NomeCompleto , sum(d.sales) FROM dailysales d
-group by d.FirstName, d.LastName
-limit 5;
+-- SELECT TOP 5 no SQL Server, ao invés de LIMIT 5
+SELECT  CONCAT(FirstName , ' ' , LastName) AS NomeCompleto , sum(d.sales) AS Vendas FROM dailysales d -- concatenando primeiro e último nome -- é possível fazer JOIN com VIEW e tabelas (CUIDADO, acima de 6 JOINS com tabelas grandes é perigoso, ainda mais com VIEWS complexas, ou VIEW dentro de VIEW. Deixa o otimizador de consulta [query] confuso. Opte por criar tabelas temporárias para realizar JOINs, quebrando as querys)
+group by d.FirstName, d.LastName -- agrupando por primeiro e úlitimo nome
+limit 5; -- limitando 5 linhas
 
 -- Deletar dados atraves de view que acessam varias tabelas
-delete from dailysales;
+delete from dailysales; -- [FUNCIONA APENAS PARA TABLE] não vai funcionar pois na view dailysales há dados de várias tabelas, não sabendo qual dado deletar de qual tabela (ON CASCADE não está ligado)
 -- verifique o erro> Can not delete from join view 'cliente2.dailysales'
 
-truncate table cliente2.dailysales;
+truncate table cliente2.dailysales; -- [FUNCIONA APENAS PARA TABLE] view, não tabela -- deleta dados de uma forma mais rápido que delete, a qual gera log, já o truncate não gera tantos logs
 -- verifique o erro: Table 'cliente2.dailysales' doesn't exist
 -- NAO É UMA TABELA PARA TER DADOS DELETADOS MAS SIM UMA VIEW
 
 
 -- PARA DELETAR VIEW
 
-DROP VIEW dailysales;
+DROP VIEW dailysales; -- deletando view
 
 -- VERIFICAR SE A VIEW AINDA EXISTE
 
@@ -187,9 +211,5 @@ BEGIN;
   DROP VIEW dailysales;
   
 ROLLBACK; 
--- NAO FUNCIONA PARA CRIACAO DE OBJETOS E DELECAO DE OBJETOS, MAS SIM PARA TRANSACOES DENTRO DOS OBJETOS
+--  BEGIN, ROLLBACK: NAO FUNCIONA PARA CRIACAO DE OBJETOS E DELECAO DE OBJETOS, MAS SIM PARA TRANSACOES, OU SEJA, DADOS, DENTRO DE TABELAS
 -- NO MYSQL COMANDOS DO TIPO DDL COMO CREATE TABLE, ALTER TABLE, CREATE VIEW, DROP VIEW,... O MYSQL FAZ COMMIT IMPLICITO
-
-
-
-
