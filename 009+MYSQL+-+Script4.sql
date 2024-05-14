@@ -207,7 +207,7 @@ INNER JOIN product AS p
 -- DELETAR A ESTRTUTURA VIA DROP DE UMA VIEW DENTRO DE UMA TRANSACAO E DEPOIS REALIZAR ROLLBACK
     
 BEGIN; -- não funcionará pois funciona apenas com DML
-  DROP VIEW dailysales;
+  DROP VIEW dailysales; -- apaga apenas a view, não a tabela da qual ela surgiu
 
 ROLLBACK; -- não é possível voltar (commit implícito com DDL)
 
