@@ -169,13 +169,12 @@ group by d.FirstName, d.LastName -- agrupando por primeiro e úlitimo nome
 limit 5; -- limitando 5 linhas
 
 -- Deletar dados atraves de view que acessam varias tabelas
-delete from dailysales; -- [FUNCIONA APENAS PARA TABLE] não vai funcionar pois na view dailysales há dados de várias tabelas, não sabendo qual dado deletar de qual tabela (ON CASCADE não está ligado)
+delete from dailysales; -- [FUNCIONA APENAS PARA UMA VIEW C/ UMA TABLE] não vai funcionar pois na view dailysales há dados de várias tabelas, não sabendo qual dado deletar de qual tabela (ON CASCADE não está ligado)
 -- verifique o erro> Can not delete from join view 'cliente2.dailysales'
 
 truncate table cliente2.dailysales; -- [FUNCIONA APENAS PARA TABLE] view, não tabela -- deleta dados de uma forma mais rápido que delete, a qual gera log, já o truncate não gera tantos logs
 -- verifique o erro: Table 'cliente2.dailysales' doesn't exist
 -- NAO É UMA TABELA PARA TER DADOS DELETADOS MAS SIM UMA VIEW
-
 
 -- PARA DELETAR VIEW
 
@@ -205,11 +204,13 @@ INNER JOIN orderitem AS i
 INNER JOIN product AS p
     ON p.id = i.productid;
     
--- DELETAR UMA VIEW DENTRO DE UMA TRANSACAO E DEPOIS REALIZAR ROLLBACK
+-- DELETAR A ESTRTUTURA VIA DROP DE UMA VIEW DENTRO DE UMA TRANSACAO E DEPOIS REALIZAR ROLLBACK
     
-BEGIN;
+BEGIN; -- não funcionará pois funciona apenas com DML
   DROP VIEW dailysales;
-  
-ROLLBACK; 
+
+ROLLBACK; -- não é possível voltar (commit implícito com DDL)
+
+SELECT * FROM dailysales;
 --  BEGIN, ROLLBACK: NAO FUNCIONA PARA CRIACAO DE OBJETOS E DELECAO DE OBJETOS, MAS SIM PARA TRANSACOES, OU SEJA, DADOS, DENTRO DE TABELAS
 -- NO MYSQL COMANDOS DO TIPO DDL COMO CREATE TABLE, ALTER TABLE, CREATE VIEW, DROP VIEW,... O MYSQL FAZ COMMIT IMPLICITO
