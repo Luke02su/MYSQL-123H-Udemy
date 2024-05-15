@@ -48,7 +48,7 @@ SELECT  Id
 
 -- SERIA DESTA FORMA NO SQL SERVER, ...
 
-CREATE PROCEDURE ProductList
+CREATE PROCEDURE ProductList -- SQL Server
 AS
 BEGIN
    SELECT Id
@@ -66,9 +66,10 @@ END;
 -- e pode existir varias operacoes dentro de uma stored procedure que nao deveria ser executada apos o ; mas sim apenas na chamada
 -- da procedure que ai todos os comandos internos seriam executados como um bloco unico. 
 
+-- usar delimitador para criar procedimento (optar por usar $$)
 DELIMITER $$
 
-CREATE PROCEDURE ProductList()
+CREATE PROCEDURE ProductList() -- pode passar parâmetro aqui
 BEGIN
    SELECT Id
       ,ProductName
@@ -78,20 +79,21 @@ BEGIN
       ,IsDiscontinued
   FROM CLIENTE2.Product
   ORDER BY ProductName DESC;
-END$$
+END$$ -- fecha o processo (o normal seria usar ponto e vírgula, mas não sairia executando no Linux, usa-se outro delimitador para poder executar mais blocos em um procedure em ambiente terminar Linux)
 
-DELIMITER ;
+DELIMITER ; -- volta o delimitador padrão ponto e vírgula
 
+drop procedure ProductList;
 
 -- VERIFICAR A STORED PROCEDURE CRIADA NO WORKBENCH E VIA SCRIPTS ABAIXO:
 
-SHOW PROCEDURE STATUS;
+SHOW PROCEDURE STATUS; -- mostra data, quem criou etc (mais detalhes que o debaixo)
 
 -- ou
 
 use cliente2;
-select routine_name, routine_type,definer,created,security_type,SQL_Data_Access from information_schema.routines 
-where routine_type='PROCEDURE' and routine_schema='cliente2';
+select routine_name, routine_type,definer,created,security_type,SQL_Data_Access from information_schema.routines -- este ultimo é banco de dados padrao do mysql
+where routine_type='PROCEDURE' and routine_schema='cliente2'; -- outra forma de ver quais procedures estão no bd cliente2
 
 -- EXECUTANDO A STORED PROCEDURE CRIADA
 
@@ -103,7 +105,7 @@ EXEC ProductList;
 
 -- MAS NO MYSQL
 
-call ProductList();
+call ProductList; -- chamar procedure (pode usar () ou sem)
 
 -- MODIFICANDO A STORED PROCEDURE 
 -- NO SQL SERVER PODERIA USAR O ALTER PROCEDURE MAS NO MYSQL 8 E VRS ANTERIORES PRECISA DELETAR E CRIAR NOVAMENTE
