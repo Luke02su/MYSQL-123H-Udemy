@@ -79,7 +79,7 @@ BEGIN
       ,IsDiscontinued
   FROM CLIENTE2.Product
   ORDER BY ProductName DESC;
-END$$ -- fecha o processo (o normal seria usar ponto e vírgula, mas não sairia executando no Linux, usa-se outro delimitador para poder executar mais blocos em um procedure em ambiente terminar Linux)
+END$$ -- (diferenciar final do bloco de código com $$ ao invés de ; para não confundir e não causar erros na diferenfiação do final do código e do bloco do stored procedure) -- fecha o processo (o normal seria usar ponto e vírgula, mas não sairia executando no Linux, usa-se outro delimitador para poder executar mais blocos em um procedure em ambiente terminar Linux)
 
 DELIMITER ; -- volta o delimitador padrão ponto e vírgula
 
@@ -115,21 +115,22 @@ DROP PROCEDURE IF EXISTS ProductList;
 DELIMITER $$
 
  CREATE PROCEDURE ProductList()
-    BEGIN
+    BEGIN -- begin depois do create
        SELECT Id
           ,ProductName
           ,SupplierId
           ,UnitPrice
       FROM CLIENTE2.Product
       ORDER BY ProductName ASC
-      LIMIT 3;
+      LIMIT 3; -- limitando quantidade de linhas
     END$$
 
 DELIMITER ;
 
+CALL ProductList();
 -- EXECUTE NOVAMENTE E VEJA O RESULTADO
 
-CALL ProductList();
+CALL ProductList;
 
 
 -- DELETANDO STORED PROCEDURE
@@ -137,7 +138,7 @@ CALL ProductList();
 DROP PROCEDURE ProductList;
 
 -- Parameters nas Stored Procedure
--- Passando Parametro para a Stored Procedure. (IN | OUT | INOUT) (Parameter Name [datatype(length)])
+-- Passando Parametro para a Stored Procedure. (IN (entrada) | OUT (saída)| INOUT (entrada e saída)) (Parameter Name [datatype(length)])
 
 --  IN Parameters
 
@@ -145,7 +146,7 @@ DROP PROCEDURE IF EXISTS ProductList;
 
 DELIMITER $$
 
- CREATE PROCEDURE ProductList(IN max_listprice DECIMAL(12,2))  -- NO SQL SERVER IRIA USAR @ NO NOME DA VARIAVEL
+ CREATE PROCEDURE ProductList(max_listprice DECIMAL(12,2))  -- passando parâmetro no procedimento (valores entram dentro  da variável) -- Pode usar IN ou não -- NO SQL SERVER IRIA USAR @ NO NOME DA VARIAVEL
     BEGIN
        SELECT Id
           ,ProductName
@@ -161,14 +162,17 @@ DELIMITER ;
 
 -- vamos chamar a proc passando parametro de valor maximo de preco para a proc trazer produtos mais baratos
 
-CALL ProductList(21.00);
+CALL ProductList(21.00); -- passando parâmetro na chamada (entra dentro do max_listprice) -- stored procedure garante procedimento simples por meio de parâmetros, sem ter que ficar alterando a variável propriamente no código -- reutilizável alterando apenas parâmetros
+
+DROP PROCEDURE ProductList;
 
 -- Podemos rodar o select abaixo para ver a lista completo
 SELECT Id
           ,ProductName
           ,SupplierId
           ,UnitPrice
-      FROM CLIENTE2.Product;
+      FROM CLIENTE2.Product; 
+      -- ordena implicitamente pelo id em ordem asc
 
 
 -- Passando mais de 1 Parametro para a Stored Procedure
@@ -177,7 +181,7 @@ DROP PROCEDURE IF EXISTS ProductList;
 
 DELIMITER $$
 
-CREATE  PROCEDURE ProductList (IN min_listprice DECIMAL(12,2), IN max_listprice DECIMAL(12,2))
+CREATE  PROCEDURE ProductList (IN min_listprice DECIMAL(12,2), IN max_listprice DECIMAL(12,2)) -- passando dois parâmetros
 BEGIN
        SELECT Id
           ,ProductName
@@ -186,7 +190,23 @@ BEGIN
       FROM CLIENTE2.Product
        WHERE
         UnitPrice <= max_listprice and
-        UnitPrice >= min_listprice
+        UnitPrice >= min_listprice -- poderia-se usar between
+      ORDER BY ProductName ASC;
+    END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE  PROCEDURE ProductList (min_listprice DECIMAL(12,2), max_listprice DECIMAL(12,2)) -- passando dois parâmetros
+BEGIN
+       SELECT Id
+          ,ProductName
+          ,SupplierId
+          ,UnitPrice
+      FROM CLIENTE2.Product
+       WHERE
+       UnitPrice BETWEEN min_listprice AND max_listprice
       ORDER BY ProductName ASC;
     END$$
 
@@ -196,7 +216,7 @@ DELIMITER ;
 
 call ProductList (10, 200); -- a ordem da passagem dos parametros é essencial.
 
-call ProductList (12, 14);
+call ProductList (12, 14); -- mudando os valores dos parâmetros
 
 
 -- Alterando Stored Procedure. USANDO LIKE NA BUSCA
@@ -215,15 +235,32 @@ BEGIN
        WHERE
         UnitPrice <= max_listprice and
         UnitPrice >= min_listprice and
-        productname LIKE CONCAT ('%' , productnamePASSADA , '%')
+        productname LIKE CONCAT ('%', productnamePASSADA , '%') -- LIKE CONCAT (não funciona sem CONCAT, funcionaria em uma consulta normal em que não há passagem de parâmetro) % valorPassado % (evite % % para não ter problemas de performance)
       ORDER BY UnitPrice DESC;
     END$$
+
+DELIMITER && -- ao invés de usar $$ como delimitador, usei &&
+
+CREATE  PROCEDURE ProductList (min_listprice DECIMAL(12,2), max_listprice DECIMAL(12,2))
+BEGIN
+       SELECT Id
+          ,ProductName
+          ,SupplierId
+          ,UnitPrice
+      FROM CLIENTE2.Product
+       WHERE
+        UnitPrice BETWEEN min_listprice AND max_listprice
+        AND productname LIKE ('%hok%') -- neste caso não é o ideal, pois não há passagem de parâmetro e nesse procedure productname sempre estará atrelado a ('%hok%'), não podendo ser modificado diretamente
+      ORDER BY UnitPrice DESC;
+    END&&
 
 DELIMITER ;
 
 -- VAMOS EXECUTAR PASSANDO OS 3 PARAMENTROS
 
 CALL ProductList (12, 15,'hok');
+CALL ProductList (10, 100,'oi');
+CALL productlist (12, 15); 
 
 
 -- Criação de parâmetros opcionais
@@ -240,9 +277,9 @@ DELIMITER $$
 CREATE PROCEDURE ProductList (IN min_listprice DECIMAL(12,2), IN max_listprice DECIMAL(12,2), IN productnamePASSADA VARCHAR(50))
 BEGIN
 
-IF min_listprice IS NULL THEN
-    set min_listprice=0.00;
-END IF;
+IF min_listprice IS NULL THEN -- se ... é nulo então ... (se não passar nenhum parâmetro)
+    set min_listprice=0.00; -- define pelo set, passando 0
+END IF; -- finaliza se
 
 if max_listprice IS NULL THEN
     set max_listprice=9999999999.99;
@@ -266,9 +303,9 @@ DELIMITER ;
 
 CALL ProductList (12, 15,'a');
 
-CALL ProductList (NULL, NULL,'a');
+CALL ProductList (NULL, NULL,'a'); -- se passar nulo, passa min para 0 e max para 9999
 
-CALL ProductList (70, NULL, 'a');
+CALL ProductList (70, NULL, 'a'); -- como max é null, passa max para 99999
 
 -- TRABALHANDO COM VARIAVEL
 
@@ -507,4 +544,3 @@ call dynamic2('customer','id,lastname,city', 'lastname' );
 
 
 -- ------------------------FIM
-
