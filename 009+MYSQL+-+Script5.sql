@@ -70,7 +70,7 @@ END;
 DELIMITER $$
 
 CREATE PROCEDURE ProductList() -- pode passar parâmetro aqui
-BEGIN
+BEGIN -- apenas para uma instrução é desnecessário begin e end e delimiter
    SELECT Id
       ,ProductName
       ,SupplierId
@@ -80,7 +80,7 @@ BEGIN
   FROM CLIENTE2.Product
   ORDER BY ProductName DESC;
 END$$ -- (diferenciar final do bloco de código com $$ ao invés de ; para não confundir e não causar erros na diferenfiação do final do código e do bloco do stored procedure) -- fecha o processo (o normal seria usar ponto e vírgula, mas não sairia executando no Linux, usa-se outro delimitador para poder executar mais blocos em um procedure em ambiente terminar Linux)
-
+-- apenas para uma instrução é desnecessário begin e end e delimiter
 DELIMITER ; -- volta o delimitador padrão ponto e vírgula
 
 drop procedure ProductList;
