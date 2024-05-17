@@ -309,19 +309,20 @@ CALL ProductList (70, NULL, 'a'); -- como max é null, passa max para 99999
 
 -- TRABALHANDO COM VARIAVEL
 
-SET @orderdate = 2012; -- COLOCANDO VALORES NAS VARIAVEIS.
+SET @orderdate = 2012; -- COLOCANDO VALORES NAS VARIAVEIS.  -- SET @orderdate = 0 serve para atribuir um valor a uma variável. Espaço alocado na memória do servidor. Usado junto ao select usando where para comparar.
+
 SELECT Id
       ,OrderDate
       ,OrderNumber
       ,CustomerId
       TotalAmount
   FROM CLIENTE2.Order
-  where year(OrderDate) = @orderdate ;
+  where year(OrderDate) = @orderdate ; -- Função year para retirar apenas ano de DATE, DATETIME
 
 
 -- Armazenando o resultado de uma consulta em uma variavel
 
-SET @supplier_count = (
+SET @supplier_count = ( -- variável recendo conteúdo do select
     SELECT 
         COUNT(*) 
     FROM 
@@ -356,12 +357,12 @@ DROP PROCEDURE IF EXISTS totalprodutos;
 DELIMITER $$
 
 CREATE PROCEDURE totalprodutos (
-    OUT count_produto int
+    OUT count_produto int -- OUT é saída, IN é entrada (poderia oucultar o OUT aqui)
 ) 
 BEGIN
     SELECT 
         count(id)
-	INTO count_produto
+	INTO count_produto -- armazenando a qtd de linhas dentro da variável de saída OUT
     FROM
         product;
 END$$
@@ -370,8 +371,8 @@ DELIMITER ;
 
 -- CHAMANDO A SP
 
-CALL totalprodutos(@totalprodutos);
-SELECT @totalprodutos;
+CALL totalprodutos(@totalprodutos); -- chamando parâmetro de saída (não retorna nada, tem que usar SELECT). O @variável recebe a variável de saída
+SELECT @totalprodutos AS TOTAL;
 
 -- -------------------------------------------------------------------------------
 
@@ -384,7 +385,7 @@ DROP PROCEDURE IF EXISTS Acharproduto;
 DELIMITER $$
 
 CREATE PROCEDURE Acharproduto (
-    IN produto_ID INT , 
+    IN produto_ID INT , -- pode-se ocultar IN e OUT
     OUT nome_produto VARCHAR(50)
 ) 
 BEGIN
@@ -401,9 +402,14 @@ DELIMITER ;
 
 -- CHAMANDO A SP, passando parametro precounitario = 2
 
-SET @produto = 2;
+SET @produto = 2; -- parâmetro de IN (alocando memória)
 CALL Acharproduto(@produto, @nome_produto);
 SELECT @nome_produto;
+
+CALL Acharproduto(2, @nome_produto);
+SELECT @nome_produto;
+
+-- Entrada, saída ou entrada e saída dependerá do contexto. Dependendo do script as três podem fazer a mesma função indiretamente
 
 -- ----------------------------------------------------------
 
@@ -413,7 +419,7 @@ SELECT @nome_produto;
  
  DROP PROCEDURE IF EXISTS SOMA ;
  
-CREATE PROCEDURE SOMA ()
+CREATE PROCEDURE SOMA () -- sem parâmetros
 
 BEGIN
 
@@ -428,12 +434,12 @@ BEGIN
     SELECT @vendas;
     
     IF @vendas < 100 then
-       SELECT @VENDAS AS 'Vendas de 2012 estao MENORES que 100';
+       SELECT @VENDAS AS 'Vendas de 2012 estao MENORES que 100'; -- mostrando frases AS
     ELSEIF @vendas < 500 THEN
        SELECT  @VENDAS AS 'Vendas de 2012 estao MENORES que 500';
-	ELSE 
+	ELSE -- ELSE quando é a útltima opção possível
        SELECT  @VENDAS AS 'Vendas de 2012 estao IGUAL OU MAIORES que 500';
-    END IF;
+    END IF; -- finalizando IF
     
 END$$
     
@@ -455,18 +461,18 @@ CREATE PROCEDURE testawhile ()
 
 BEGIN
 
-SET @qt = 0;
+SET @qt = 0; -- inicializando variável
 
-WHILE @qt <= 5 DO
-    SELECT @qt;
-    SET @qt = @qt + 1;
+WHILE @qt <= 5 DO -- enquanto (WHILE) ... faça (DO
+    SELECT @qt; 
+    SET @qt = @qt + 1; -- set modifica variável --  faz consulta até chegar no 5 (abre uma nova tabela)
 END WHILE;
 
 END$$
     
 DELIMITER ;
 
-CALL testawhile ();
+CALL testawhile (); -- chamando
 -- ----------------------------
 
 -- WHILE EXEMPLO SAINDO DO LOOP COM COMANDO LEAVE. 
@@ -482,12 +488,12 @@ BEGIN
 
 SET @qt = 0;
 
-myloop: WHILE @qt <= 5
- DO
+myloop: WHILE @qt <= 5 -- importante usar dois pontos -- saindo de um laço para ir para outro
+ DO -- faça
     SELECT @qt;
     SET @qt = @qt + 1;
     if @qt = 3 then
-        LEAVE myloop;
+        LEAVE myloop; -- saindo do loop (laço de repetição)
     end if;
 END WHILE myloop;
 
