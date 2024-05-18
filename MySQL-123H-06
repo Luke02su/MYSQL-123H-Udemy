@@ -1,4 +1,5 @@
 
+
 /*==================================================================================
 Curso: MYSQL
 Instrutor: Sandro Servino
@@ -501,9 +502,45 @@ END$$
     
 DELIMITER ;
 
+CALL testawhile();
+
+DELIMITER %%
+CREATE PROCEDURE testawhile2()
+BEGIN
+
+SET @id = 0;
+
+WHILE @id < 10 DO
+	SELECT @id;
+	SET @id = @id + 1;
+END WHILE;
+
+END %%
+DELIMITER ;
+
+CALL testawhile2();
+
+drop procedure testawhile2;
+
 -- CHAMAR A PROCEDURE
 
-CALL testawhile();
+DELIMITER %%
+CREATE PROCEDURE testawhile3()
+BEGIN
+
+SET @id = 10;
+
+myloop: WHILE @id < 20 DO
+	SELECT @id;
+    SET @id = @id + 1;
+		IF @id = 15 THEN
+			LEAVE myloop;
+		END IF;
+	END WHILE;
+END %%
+DELIMITER ;
+
+CALL testawhile3();
 
 -- ------------------------------------------------
 
@@ -514,21 +551,21 @@ CALL testawhile();
 DROP PROCEDURE IF EXISTS dynamic ;
 
 delimiter // 
-CREATE PROCEDURE dynamic(IN tbl CHAR(64), IN col CHAR(64))
+CREATE PROCEDURE dynamic(IN tbl CHAR(64), IN col CHAR(64)) -- passando parâmetros no dynamic (dynamic é executado em tempo real). Tomar cuidado, pois pode permitir ataques de hackers
 BEGIN
-    SET @s = CONCAT('SELECT ',col,' FROM ',tbl );
-    PREPARE stmt FROM @s;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+    SET @s = CONCAT('SELECT ',col,' FROM ',tbl ); -- atribuindo a @s coluna e tabela e concatenando
+    PREPARE stmt FROM @s; -- preprando @s em stmt (preparando instrução)
+    EXECUTE stmt; -- executar instrução
+    DEALLOCATE PREPARE stmt; -- desalocar para não ficar usando memória atoa
 END
 //
 delimiter ;
 
 -- VAMOS CHAMAR A PROCEDURE PASSANDO PARAMETROS
 
-call dynamic('customer','lastname');
+call dynamic('customer','lastname'); -- chamando table e coluna 
 
-call dynamic('customer','lastname,city');
+call dynamic('customer','lastname,city,id'); -- col tem 64 bytes, por isso é possível buscar ambas colunas (grandes nomes).
 
 
 -- exemplo 2
@@ -536,9 +573,9 @@ call dynamic('customer','lastname,city');
 DROP PROCEDURE IF EXISTS dynamic2 ;
 
 delimiter // 
-CREATE PROCEDURE dynamic2(IN tbl CHAR(64), IN col CHAR(64), IN ordenacao CHAR(64))
+CREATE PROCEDURE dynamic2(IN tbl CHAR(64), IN col CHAR(64), IN ordenacao CHAR(64)) -- criando outro dynamic
 BEGIN
-    SET @s = CONCAT('SELECT ',col,' FROM ',tbl, ' ORDER BY ', ordenacao );
+    SET @s = CONCAT('SELECT ',col,' FROM ',tbl, ' ORDER BY ', ordenacao ); -- ordenando ORDER BY
     PREPARE stmt FROM @s;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
@@ -546,7 +583,20 @@ END
 //
 delimiter ;
 
-call dynamic2('customer','id,lastname,city', 'lastname' );
+call dynamic2('customer','id,lastname,city', 'lastname' ); -- aspas simples, separando parãmetros
 
+DELIMITER ##
+CREATE PROCEDURE dynamic3(IN tbl VARCHAR(100), IN col VARCHAR(100), IN ordenacao VARCHAR(100))
+BEGIN
+	SET @recebe := CONCAT('SELECT ', col, ' FROM ', tbl, ' WHERE id > 10 ORDER BY ', ordenacao); -- sar espaços quando usar CONCAT
+	PREPARE prepara FROM @recebe;
+	EXECUTE prepara;
+	DEALLOCATE PREPARE prepara; 
+END ##
+DELIMITER ;
+
+drop procedure dynamic3;
+
+CALL dynamic3('customer', 'id, lastname, city', 'id');
 
 -- ------------------------FIM
