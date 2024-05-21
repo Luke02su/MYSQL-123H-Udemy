@@ -83,14 +83,14 @@ DELIMITER $$
 
 CREATE FUNCTION FuncDesconto(
     qt INT,
-    precounitario DEC(10,2),
+    precounitario DEC(10,2), -- dec é decimal
     desconto DEC(4,2)
 )
-RETURNS DEC(10,2) DETERMINISTIC -- retornando o tipo de dado primário
+RETURNS DEC(10,2) DETERMINISTIC -- retornando o tipo de dado primário (poderia ser DEC(4,2), não iria fazer diferença, a não ser se a multiplicação necessitasse de mais casas)
 
-BEGIN
+BEGIN -- início da instrução
     RETURN qt * precounitario * (1 - desconto); -- apenas uma instrução
-END$$
+END$$ -- fim da instrução
 
 DELIMITER ;
 
@@ -109,26 +109,26 @@ DELIMITER $$
 CREATE FUNCTION NIVELCLIENTE(
 	credito DECIMAL(10,2)
 ) 
-RETURNS VARCHAR(20) DETERMINISTIC
+RETURNS VARCHAR(20) DETERMINISTIC -- retorna varchar(20)
 BEGIN
-    DECLARE NIVELCLIENTE VARCHAR(20);
+    DECLARE NIVELCLIENTE VARCHAR(20); -- declarando variável NIVELCLIENTE que receberá os valores após as confições se encaixarem no parãmetro de entrada (credito)
 
-    IF credito < 1000 THEN
-        SET NIVELCLIENTE = 'PRATA';
-    ELSEIF credito < 5000 THEN
+    IF credito < 1000 THEN -- se... então... -- comece sempre do menor para maior ou maior para menor (ordenado)
+        SET NIVELCLIENTE = 'PRATA'; -- usando SET para atribuir valor  à variável 
+    ELSEIF credito < 5000 THEN -- senão... então...
 		SET NIVELCLIENTE = 'PLATINA';
-    ELSEIF (credito >= 5000 AND 
+    ELSEIF (credito >= 5000 AND -- função booleana
 			credito <= 10000) THEN
         SET NIVELCLIENTE = 'OURO';
-	-- ELSE 
-    --    SET NIVELCLIENTE = 'SUPEROURO';
-    END IF;
+	ELSE -- else genérico para,caso não se enquadre em nenhuma das condições, retorne um valor not null
+        SET NIVELCLIENTE = 'SUPEROURO';
+    END IF; -- finalizando IF
 	-- return the customer level
-	RETURN (NIVELCLIENTE);
+	RETURN (NIVELCLIENTE); -- retornando variável para função que chamará-la
 END$$
 DELIMITER ;
 
-SELECT NIVELCLIENTE(100);
+SELECT NIVELCLIENTE(100); -- passando parâmetros de entrada (credito) para a função
 SELECT NIVELCLIENTE(4999);
 SELECT NIVELCLIENTE(5000);
 SELECT NIVELCLIENTE(10000);
@@ -147,7 +147,7 @@ SELECT id, quantity, unitprice FROM ORDERITEM;
 
 SELECT 
     id, 
-    FuncDesconto(Quantity,unitprice,0.1) valorvendafinal
+    FuncDesconto(Quantity,unitprice,0.1) valorvendafinal -- passando colunas quantity e unitprice na função -- usando a função FuncDesconto para diminuir o tamanho que ficaria esta instrução caso não houvesse função sendousada
 FROM 
    orderitem
 GROUP BY 
@@ -155,7 +155,7 @@ GROUP BY
 
 -- E PODEMOS COM O RESULTADO DO RETORNO DA FUNCTION FUNCDESCONTO ALIMENTAR FUNCAO SUM
 SELECT 
-    SUM(FuncDesconto(Quantity,unitprice,0.1)) valorvendafinal
+    SUM(FuncDesconto(Quantity,unitprice,0.1)) valorvendafinal -- função criada dentro da SUM
 FROM 
    orderitem;
     
@@ -170,15 +170,15 @@ DROP FUNCTION IF EXISTS SOMATUDO;
 DELIMITER $$
 
 
-CREATE FUNCTION SOMATUDO()
+CREATE FUNCTION SOMATUDO() -- criando função sem passar valor no parãmetro
 RETURNS DEC(10,2)  deterministic
 
 BEGIN
-    DECLARE somatudovar DEC(10,2);
+    DECLARE somatudovar DEC(10,2); -- declarando variável "tabela"
 SELECT sum(unitprice*quantity) AS SOMATOTAL
-    INTO somatudovar 
+    INTO somatudovar -- guardando (INTO) na "tabela" somatudovar resultado sum(unitprice*quantity)
     FROM orderitem;
-RETURN somatudovar;
+RETURN somatudovar; -- retorna variável que tem a soma de tudo guardada
 
 END$$
 
@@ -216,7 +216,8 @@ Vantagens de usar tabela temporária
 
 use cliente2;
 
-CREATE TEMPORARY TABLE customerBerlin 
+-- Poderia estar dentro de uma function, procedure ou function:
+CREATE TEMPORARY TABLE customerBerlin -- essa tabela temporária existe apenas nesta sessão, depois de sair some
 (
   id int NOT NULL,
   firstname varchar(40) DEFAULT NULL,
@@ -227,7 +228,7 @@ CREATE TEMPORARY TABLE customerBerlin
   PRIMARY KEY (id) 
   );
 
-INSERT INTO customerBerlin
+INSERT INTO customerBerlin -- inserindo dados da tabela customer na customerBerlin
 (id, firstname, lastname, city, country, phone )
 SELECT id, firstname, lastname, city, country, phone
 FROM customer
@@ -235,6 +236,8 @@ where city = "berlin";
 
 /* Vamos ver o resultado */
 SELECT * FROM customerBerlin;
+SELECT * FROM customer
+WHERE city = 'Berlin'; -- checando resultado da table customerBerlin
 
 /* Para deletar a tabela temporaria 
 NAO EH NECESSARIO DELETAR O OBJETO TABELA TEMPORARIA PORQUE ELE SERA AUTOMATICAMENTE DELETADO QUANDO A SESSAO QUE A CRIOU FOR FECHADA*/
