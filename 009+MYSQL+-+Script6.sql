@@ -71,7 +71,7 @@ DROP TABLE IF EXISTS produto_auditoria;
 
 -- NO SQL SERVER PODERIAMOS CRIAR A TABELA DESTA FORMAL:
 -- CREATE TABLE produto_auditoria(
-    id INT IDENTITY PRIMARY KEY,
+    id INT IDENTITY PRIMARY KEY, -- IDENTITY é auto_increment no SQL SERVER
     productid INT NOT NULL,
     productname NVARCHAR(50) NOT NULL,
     SupplierId INT NOT NULL,
@@ -86,7 +86,9 @@ DROP TABLE IF EXISTS produto_auditoria;
 -- NO MYSQL IREMOS CRIAR DESTA FORMA.  MUITO POUCA MUDANCA. NESTE CASO, PARA NAO DAR ERRO DE SCRIPT APENAS TROCAR PALAVRA
 -- RESERVADA NO SQL SERVER IDENTITY para auto_increment no MYSQL
 
-CREATE TABLE produto_auditoria
+drop table if exists produto_auditoria; 
+
+CREATE TABLE produto_auditoria -- tabela de controle, log (dados de product virão apara cá)
 (
     id INT auto_increment PRIMARY KEY,
     productid INT NOT NULL,
@@ -97,9 +99,9 @@ CREATE TABLE produto_auditoria
     IsDiscontinued bit NOT NULL,
     updatedat DATETIME NOT NULL,
     operation CHAR(3) NOT NULL,
-    CHECK(operation = 'INS' or operation='DEL')
+    usuario VARCHAR(40) NOT NULL,
+    CHECK(operation = 'INS' or operation='DEL') -- constraint sem nome (check garante que em operation entre INS (inserir) ou DEL (deletar)
 );
-
 
 -- ou poderia ser criado com esta sintaxe
 
@@ -114,8 +116,8 @@ CREATE TABLE `produto_auditoria` (
   `IsDiscontinued` bit(1) NOT NULL,
   `updatedat` datetime NOT NULL,
   `operation` char(3) NOT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `produto_auditoria_chk_1` CHECK (((`operation` = 'INS') or (`operation` = 'DEL')))
+  PRIMARY KEY (`id`), -- primary key no final
+  CONSTRAINT `produto_auditoria_chk_1` CHECK (((`operation` = 'INS') or (`operation` = 'DEL'))) -- especificando constraint, dando um nome
 );
 
 -- ---------------------------------------------------------
@@ -173,13 +175,14 @@ GO
 
 -- NO MYSQL É ASSIM:
 
-DROP TRIGGER IF EXISTS `cliente2`.`trg_produto_auditoria`;
-
+DROP TRIGGER trg_produto_auditoriaINS;
+-- mesma coisa no stored procedure
 DELIMITER $$
 
-CREATE TRIGGER trg_produto_auditoria AFTER INSERT 
-ON Product 
-FOR EACH ROW
+CREATE TRIGGER trg_produto_auditoriaINS 
+AFTER INSERT -- trigger executada depois de um insert, delete, update (before poderia ser usado)
+ON Product -- trigger da tabela product (trigger será executada quando alguém der um insert em product)
+FOR EACH ROW -- para cada linha será executado após begin
 BEGIN
     INSERT INTO produto_auditoria(
         productid, 
@@ -188,20 +191,20 @@ BEGIN
         UnitPrice,
         package,
 		IsDiscontinued,
-        updatedat, 
-        operation
+        updatedat, -- fixar a data de operação
+        operation, -- fixar qual operação
+        usuario
     )
     VALUES (
-        NEW.id,
+        NEW.id, -- no momento do insert, o MySQL pega os dados inseridos em Product e joga para tabela temporária NEW depois para producto_auditoria) (insert e update)
         NEW.productname,
         NEW.SupplierId,
         NEW.UnitPrice,
         NEW.package,
         NEW.IsDiscontinued,
-        NOW(),
-        'INS' );    -- REPARAR NA TABELA QUE GUARDA OS NOVOS DADOS TEMPORARIOS QUE SERAO INSERIDOS NA TABELA produto_auditoria (NO SQL SERVER)
-                   -- PORQUE HOUVE INCLUSAO DE NOVOS PRODUTOS NA TABELA PRODUCT
-   
+        NOW(), -- traz data e hora corrente
+        'INS',
+        USER());  -- passando INS para operation para ter noção se o trigger foi de inserir ou deletar   -- REPARAR NA TABELA QUE GUARDA OS NOVOS DADOS TEMPORARIOS QUE SERAO INSERIDOS NA TABELA produto_auditoria (NO SQL SERVER) -- PORQUE HOUVE INCLUSAO DE NOVOS PRODUTOS NA TABELA PRODUCT
 END$$
 
 DELIMITER ;
@@ -219,33 +222,32 @@ CREATE TRIGGER trg_produto_auditoriaDEL AFTER DELETE
 ON Product  -- A TRIGGER SERA CRIADO NA TABELA PRODUCT
 FOR EACH ROW
 BEGIN
-    INSERT INTO produto_auditoria(
-        productid, 
+    INSERT INTO produto_auditoria( -- como está em ordem, desnecessário especificar as colunas. TODAVIA, DEU ERRO AO DELETAR POIS APONTAVA QUE FALTAVA COLUNAS NÂO ESPECÍFICADAS, TIVE QUE ESPECIFICAR TODAS.
+		productid, 
         productname,
         SupplierId,
         UnitPrice,
         package,
 		IsDiscontinued,
-        updatedat, 
-        usuario,
-        operation
+        updatedat, -- fixar a data de operação
+        operation, -- fixar qual operação
+        usuario
     )
   
     VALUES (
-        OLD.id,
+        OLD.id, -- old guardará os dados depois de ser excluídos (delete e update)
         OLD.productname,
         OLD.SupplierId,
         OLD.UnitPrice,
         OLD.package,
         OLD.IsDiscontinued,
         NOW(),
-        
-        'DEL' );    -- REPARAR NA TABELA QUE GUARDA OS NOVOS DADOS TEMPORARIOS QUE SERAO DELETADOS NA TABELA produto_auditoria (NO SQL SERVER)
+        'DEL',
+        USER()); -- sinalizar que deletou para operation    -- REPARAR NA TABELA QUE GUARDA OS NOVOS DADOS TEMPORARIOS QUE SERAO DELETADOS NA TABELA produto_auditoria (NO SQL SERVER)
                    -- PORQUE HOUVE DELECAO DE DADOS DE PRODUTOS NA TABELA PRODUCT
 END$$
 
 DELIMITER ;
-
 
 -- -----------------
 
@@ -259,10 +261,11 @@ SELECT
     * 
 FROM 
     produto_auditoria;
-
+    
+-- Isso que foi feito em triggers poderia ser feito em procedures, mas não seria automatizado.
 -- VAMOS DAR INSERT AGORA NA TABELA DE PRODUTO
 
-INSERT INTO product(id,
+INSERT INTO product(id, -- após o insert na tabela product, a trigger levou os valores para a tabela product_auditoria
         productname,
         SupplierId,
         UnitPrice,
@@ -287,10 +290,8 @@ FROM
 
 select * from product where  productname = 'PRODUTO X';
 
-DELETE FROM 
-    product
-WHERE 
- productname = 'PRODUTO X';
+SET SQL_SAFE_UPDATES = 0;
+DELETE FROM product WHERE productname = 'PRODUTO X'; -- após o delete na tabela product, a trigger levou os valores para a tabela product_auditoria
 
 select * from product where  productname = 'PRODUTO X';
 
@@ -305,7 +306,6 @@ FROM
 -- como guardar o nome do user na tabela de auditoria
 select NOW();
 SELECT USER();
-
 
 -- -----------------------------------------------------------------------------------
 
