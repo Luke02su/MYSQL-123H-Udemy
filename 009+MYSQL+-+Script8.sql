@@ -131,20 +131,20 @@ SHOW GRANTS FOR MARIA@localhost;
 -- Dar privilegio ao rodrigo, vindo apenas do ip 127.0.0.1 de fazer leitura e alteracao, apenas na tabela customer, que está no banco cliente2, mas 
 -- apenas nas colunas ID,firstname,lastname E AINDA DAR PRIVILEGIO AO RODRIGO DE DAR OS MESMOS PRIVILEGIOS PARA OUTROS USERS DEVIDO OPCAO WITH GRANT OPTION
 
-CREATE USER IF NOT EXISTS 'rodrigo'@'127.0.0.1'
+CREATE USER IF NOT EXISTS 'rodrigo'@'127.0.0.1' -- localhost, significa apena na máquina local na qual está o MYSQL, se tivesse % poderia acessar de qualuqer máquina
 IDENTIFIED BY '123'; 
 
-GRANT SELECT (id,firstname,lastname), UPDATE (ID,firstname,lastname)
-ON cliente2.customer
-TO 'rodrigo'@'127.0.0.1' WITH GRANT OPTION;
+GRANT SELECT (id,firstname,lastname), UPDATE (ID,firstname,lastname) -- limitando os direitos (recebe denied caso tente algo que não contemple esses acessos)
+ON cliente2.customer -- determinado bd e determinada tabela
+TO 'rodrigo'@'127.0.0.1' WITH GRANT OPTION; -- WITH GRANT OPTION pode dar as mesmas permissões (níveis de acesso) para outros
 
-SHOW GRANTS FOR rodrigo@127.0.0.1;
+SHOW GRANTS FOR rodrigo@127.0.0.1; -- o rodrigo tem que conectar deste ip, senão daria acesso
 -- ---------------------------------------
 
-CREATE USER IF NOT EXISTS 'ANA'
+CREATE USER IF NOT EXISTS 'ANA' -- ou apenas ALL pode acessar de qualquer local e máquina
 IDENTIFIED BY '123'; 
 
-GRANT ALL PRIVILEGES 
+GRANT ALL PRIVILEGES -- ou apenas ALL, dando todos privilegios em qualquer dba e qualquer tabela. Basicamente vira um dba
 ON *.* 
 TO ANA; -- DAR TODOS OS PRIVILEGIOS EM TODOS OS OBJETOS DE TODOS OS BANCOS DE DADOS PRA ANA ACESSAR DE QUALQUER IP
 -- Cuidado com ALL PRIVILEGES porque esta criando aqui um super user que pode fazer qualquer coisa com todos os bancos de dados e instancia mysql, inclusive SHUTDOWN
@@ -153,7 +153,7 @@ SHOW GRANTS FOR ANA;
 
 -- Va no menu database e se conecte como ANA
 -- RODE O COMANDOS
-SELECT USER();
+SELECT USER(); -- função devolve o usuário, que é o root@localhost (pode acessar apenas desta máquina)
 
 -- Feche esta janela (sessao da user ANA)
 
@@ -169,7 +169,7 @@ SHOW GRANTS FOR 'rodrigo'@'127.0.0.1';
 
 REVOKE SELECT (id,firstname,lastname), UPDATE (ID,firstname,lastname) -- REVOGANDO O DIREITO DE LEITURA E ATUALICAO EM ALGUMAS COLUNAS DE ALGUMAS TABELAS PARA RODRIGO VINDO DO IP 127.0.0.1
 ON cliente2.customer
-FROM 'rodrigo'@'127.0.0.1';
+FROM 'rodrigo'@'127.0.0.1'; -- grant usa-se to, revoke é from
 
 SHOW GRANTS FOR 'rodrigo'@'127.0.0.1'; -- PARA REMOVER PRIVILEGIO GRANT OPTION , PRECISO SER EXPLICITO NO REVOKE. Este privilegio da direito deste user dar direitos que ele tem a outros users. Cuidado com este privilegio.
 
@@ -177,8 +177,10 @@ REVOKE grant option-- REVOGANDO O DIREITO DE LEITURA E ATUALICAO EM ALGUMAS COLU
 ON cliente2.customer
 FROM 'rodrigo'@'127.0.0.1';
 
-SHOW GRANTS FOR 'rodrigo'@'127.0.0.1'; 
+SHOW GRANTS FOR 'rodrigo'@'127.0.0.1';
 
+-- DBA precisa criar users, mas ficar dando grant e revoke nos previlegies é role (papel), por exemplo, DBA senior, junior etc. para não ter que ficar dando para cada usuário particularmente.
+-- Exemplo: papel só de leitura.
 -- -----------------------------------------------------------------
 
 -- ROLES (papeis)
