@@ -235,7 +235,7 @@ SHOW GRANTS FOR 'app_leitura';  -- verificando privilegios de uma role
 
 SHOW GRANTS FOR 'app_desenvolvedor'; -- previlegios da role
 SHOW GRANTS FOR 'dev1'@'localhost'; -- privilegios do user
-SHOW GRANTS FOR 'dev1'@'localhost' USING 'app_desenvolvedor'; -- verificando todos os privilegios dados ao dev1 no papel desenvolvedor, pois poderia estar usando outros papéis
+SHOW GRANTS FOR 'dev1'@'localhost' USING 'app_desenvolvedor'; -- (DBA) verificando todos os privilegios dados ao dev1 no papel desenvolvedor, pois poderia estar usando outros papéis
 
 -- CLIQUE NO MENU DATABASE E SELECIONE A OPCAO PARA ABRIR UMA NOVA CONEXAO COMO USER dev1 SENHA dev1pass;
 -- PARA VERIFICAR QUAL USER ESTA CONECTADO NAQUELA SESSAO
@@ -285,7 +285,8 @@ SHOW GRANTS FOR CURRENT_USER();
 
 https://dev.mysql.com/doc/workbench/en/wb-mysql-connections-navigator-management-users-and-privileges.html
 
-DBA: Concede os direitos para realizar todas as tarefas.
+ROOT: maior privilégios
+DBA: Concede os direitos para realizar todas as tarefas. (GRANT ALL)
 DBManager: Concede direitos em todos os bancos de dados, mas com excecao de alguns direitos predefinidos, como criar user, dar shutdown,...
 MaintenanceAdmin: Concede direitos para manter o servidor, como parar o servico mysql (shutdown), dar show databases, carregar tabelas
 ProcessAdmin: Concede direitos para avaliar, monitorar e eliminar (kill) os processos do usuário.
@@ -317,21 +318,21 @@ SHOW GRANTS FOR CURRENT_USER();
 -- Vamos remover o usuario do papel app_leitura. Para isto acesse a sessao (aba do workbench) do usuario root, ou crie um user com papel DBA
 -- e rode o comando abaixo para remover o user rw_user1 do papel app_leitura
 
-REVOKE app_leitura FROM 'rw_user1'@'localhost';
+REVOKE app_leitura FROM 'rw_user1'@'localhost'; -- revogando´papel ... de ...
 
 -- Retorne a sessao do usuario rw_user1 e rode o comando 
 SHOW GRANTS FOR CURRENT_USER(); -- VEJA QUE ESTE USUARIO NAO ESTA MAIS NESTE PAPEL
 
 -- SE QUISER DAR PRIVILEGIO TOTAL PARA UM USER, como DBA, na sessao do root, rode.
-GRANT ALL PRIVILEGES ON cliente2.* TO 'rw_user1'@'localhost';
+GRANT ALL PRIVILEGES ON cliente2.* TO 'rw_user1'@'localhost'; -- apenas GRANT ALL funcionaria (neste caso não usou-se papel como intermediário)
 
 -- VAMOR DELETAR ROLE, na sessao root, rode:
 
-DROP ROLE 'app_leitura', 'app_gravacao', 'app_desenvolvedor';
+DROP ROLE 'app_leitura', 'app_gravacao', 'app_desenvolvedor'; -- apagando os papéis, os privilegies atrelados a elas para com os users também são removidos
 
 -- PARA DELETAR USER, na sessao do root, rode
-DROP USER IF EXISTS 'paulo'@'%';
-DROP USER IF EXISTS 'dev1'@'localhost';
+DROP USER IF EXISTS 'paulo'@'%'; -- acessa de qualquer lugar
+DROP USER IF EXISTS 'dev1'@'localhost'; -- acessa apenas da máquina local
 DROP USER IF EXISTS 'read_user1'@'localhost';
 DROP USER IF EXISTS 'read_user2'@'localhost';
 DROP USER IF EXISTS 'rw_user1'@'localhost';
