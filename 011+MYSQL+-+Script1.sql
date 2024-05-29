@@ -95,19 +95,19 @@ select @@datadir;
 -- Va na pasta cd c:\ProgramData\MySQL\data\MySQL Server 8.0\Data\cliente2 e vamos executar o comando abaixo para realizar o backup. 
 -- execute dir para ver as tabelas do banco. Por padrao, na criacao do banco, o mysql cria 1 file para cada tabela do banco. Esta arquitetura traz ganhos de performance para mysql.
 
-mysqldump -u root -p  cliente2  --single-transaction  > ..\backups\BK1my_large_db.sql
+mysqldump -u root -p  cliente2  --single-transaction  > ..\backups\BK1my_large_db.sql -- -u user, -p password, single transaction não lock a tabela (innodb), podendno inserir durando o bkp, antes de fazer bkp tira uma foto do estado anterior, podendo retornar caso dê problemA)
 -- entre com a senha do seu root
 -- rode comando dir ..\backups\ e verifique o backup
 
 -- Se quiser fazer backup de todas as bases de dados, rotinas (procedures e functions) e eventos
-mysqldump -u root -p --all-databases --routines --events > ..\backups\ALLBK1my_large_db.sql
+mysqldump -u root -p --all-databases --routines --events > ..\backups\ALLBK1my_large_db.sql -- 
 e rode depois dir ..\backups\
 
 -- se quiser fazer backup para mais de 1 banco de dados: CLIENTE2 e CLUBE
-mysqldump -u root -p --databases cliente2 clube > ..\backups\bkCLIENTE2eCLUBE.sql
+mysqldump -u root -p --databases cliente2 clube > ..\backups\bkCLIENTE2eCLUBE.sql -- fez bkp das views, tables and triggers, mas não das procedures, functions and events
 
 -- se quiser fazer backup de apenas uma tabela produto do banco cliente2
-mysqldump -u root -p cliente2 product > ..\backups\bktabelaproduto.sql
+mysqldump -u root -p cliente2 product > ..\backups\bktabelaproduto.sql 
 
 -- obs: COPIE ESTES BACKUPs PARA UMA PASTA DIFERENTE NO SEU COMPUTADOR E SE PUDER EM OUTRO DISCO DIFERENTE DO DISCO DOS DADOS.
 
@@ -154,7 +154,7 @@ mysql -u root -p cliente2 < BK1my_large_db.sql
 -- vai dar um erro, porque quando criamos o backup nao pedimos para o backup criar o banco, mas é muito simples, basta entrar no mysql e criar database antes ou no workbench
 mysql -u root -p
 
-Create database cliente2; 
+Create database cliente2;
 -- se der um erro, pode ser que a pasta cliente2 esteja aberta sendo ainda usada por outro programa. Procure descobrir qual programa esta com esta pasta aberta ou tente desligar seu computador.
 -- https://terminaldeinformacao.com/2019/06/12/como-ver-o-processo-que-esta-travando-um-arquivo-no-windows/
 -- Va na aba de mais recursos, cpu, e pesquise mysql. Termine o processo que esteja bloqueando esta pasta c:\ProgramData\MySQL\data\MySQL Server 8.0\Data\cliente2
