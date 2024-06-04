@@ -420,10 +420,14 @@ select * from dbteste_t1;
    -- restaura ultimo backup full
    mysql -u root -p dbteste < \backups\BKdbteste.sql
    -- Restaura (aplica) as transacoes que estano no arquivo 93 ate dia e horario especificado
-   mysqlbinlog --stop-datetime="2022-01-26 20:06:00" DESKTOP-MKCDD14-bin.000093 | mysql -uroot -p dbteste
+   mysqlbinlog --stop-datetime="2022-01-26 20:06:00" DESKTOP-MKCDD14-bin.000093 | mysql -uroot -p dbteste -- pode usar para definir para começar (start) e/ou parar (stop) dentro do log específico. Por exemplo, se tiver feito um delete 20:07:00 do mesmo dia, não queremos que volte também,pois de nada adiantaria o log incremental de bkp
 -- va no workcbench e rode 
 
   select * from dbteste_t1;
+
+-- backups e transações ideal é ser automático, apenas restauração é manual pelo DOS do win o linux (terminal)
+-- No Mysql community n tem forma gráfica agendamento de mckp, apenas enterprise.
+-- EVENT não roda mysqldump
 
 -- Você pode usar --start-datetime e --stop-datetime para localizar posições em logs binários,
 -- e então usar essas posições nos parâmetros --start-position e --stop-position para limitar as consultas retornadas.
