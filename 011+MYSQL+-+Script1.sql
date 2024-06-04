@@ -263,7 +263,7 @@ max_binlog_size = 100M
 -- OBS> MAS expire_logs_days ESTA EM DEPRECATED.
 https://dev.mysql.com/worklog/task/?id=10924#:~:text=Background%20%2D%2D%2D%2D%2D%2D,when%20binary%20log%20is%20flushed.
 
--- Na versão 8.0, uma nova variável binlog_expire_log_seconds foi introduzida. Isso permitiu
+-- Na versão 8.0, uma nova variável c foi introduzida. Isso permitiu
 -- que usuários possam definir o tempo de expiração, que não precisa ser múltiplo integral de dias. Isto é
 -- a melhor maneira de definir o tempo de expiração e também mais flexível, tornará
 -- a variável do sistema expire_logs_days desnecessária, de modo que deve ser preterida em
@@ -286,9 +286,9 @@ SHOW BINARY LOGS;
 -- Antes de excluir manualmente os arquivos de log com os comandos abaixo, é aconselhavel fazer uma copia destes arquivos.
 
 -- exemplo >
-PURGE BINARY LOGS TO 'DESKTOP-MKCDD14-bin.000091'; -- deleta todos os logs binarios files, anteriores ao 81 e torna o indicado como o padrao de gravacao das transacoes
+PURGE BINARY LOGS TO 'LUCAS-bin.000003'; -- deleta todos os logs binarios files, anteriores ao 91 e torna o indicado como o padrao de gravacao das transacoes
 
-PURGE BINARY LOGS BEFORE '2019-04-02 22:46:26'; -- deleta todos os logs binarios files que tem transacoes antes da data indicado
+PURGE BINARY LOGS BEFORE '2024-06-03 22:46:26'; -- deleta todos os logs binarios files que tem transacoes antes da data indicado
 
 -- rode novamente SHOW BINARY LOGS; e va no disco e veja
 cd C:\ProgramData\MySQL\data\MySQL Server 8.0\data 
@@ -330,8 +330,9 @@ select * from dbteste_t1;
 
 -- vamos agora fazer um backup full. Vamos para o DOS.
 -- cd C:\ProgramData\MySQL\data\MySQL Server 8.0\data 
-
+FLUSH LOGS; -- cria um novo log
 mysqldump -u root -p  dbteste --single-transaction --flush-logs  > \backups\BKdbteste.sql
+
 
 -- flush-logs fechará o log atual e abrirá um novo e definirá este novo como padrao para receber as novas transacoes daqui para diante.
 -- Se você der uma olhada novamente em C:\ProgramData\MySQL\data\MySQL Server 8.0\data ou onde esta seus dados,
@@ -358,7 +359,7 @@ select * from dbteste_t1;
 SHOW BINARY LOGS;
 
 -- Para liberar o log atual manualmente, reclicando e criando um novo log default, execute este comando no DOS
-mysqladmin -uroot -p flush-logs
+mysqladmin -u root -p flush-logs
 
 -- OBS> Geralmente este processo de backup de log nao eh feito de forma manual logo apos o backup full. O que ocorre é fazermos apenas um backup full manual com flush log ou sem
 -- para algum processo que precisamos garantir a integridade da base de dados, mas o mais normal, é criamos um script que ira realizar backups full de forma periodica com flush log
@@ -382,7 +383,7 @@ create database dbteste;
 -- e vamos para o DOS e vamos carregar o ultimo backup full
 cd C:\ProgramData\MySQL\data\MySQL Server 8.0\data
 
-mysql -u root -p dbteste < \backups\BKdbteste.sql
+mysql -u root -p dbteste < \backups\BKdbteste.sql -- CUIDADO AO FAZER BKP E IMPORTAR. NA HORA DE IMPORTAR VIA COMANDO DE FORMA ERRADA, ESCREVENDO ERRADO, PODE CORROMPER O ARQUIVO.
 
 -- veja o conteudo da tabela e repare que voltou os dados de acordo com o ultimo backup full mas os dados novos que foram inseridos depois do backup nao 
 -- retornaram mas estao no arquivo de log.
@@ -392,9 +393,10 @@ select * from dbteste_t1;
 -- Agora precisamos apenas aplicar as alterações que estao no log binário que desejamos. Para verificar os logs binarios gerados SHOW BINARY LOGS;
 -- No DOS veja na pasta de dados o binlog que quer carregar ou no nosso exemplo, o arquivo de log que foi salvo em local protegido depois de termos feito reciclagem do log. As datas e horas dos arquivos de log 
 -- sao importantes para verficar qual arquivo devera ser retornado.
+SHOW BINARY LOGS;
 cd C:\ProgramData\MySQL\data\MySQL Server 8.0\data
 
-mysqlbinlog DESKTOP-MKCDD14-bin.000093 | mysql -uroot -p dbteste
+mysqlbinlog LUCAS-bin.000008 | mysql -uroot -p dbteste -- execute no cmd
 
 -- retorne ao workbench e execute novamente
 use dbteste;
