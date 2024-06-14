@@ -545,7 +545,7 @@ $days = 30 # Dias para manter os arquivos de backup
 $date = Get-Date
 $timestamp = "" + $date.day + $date.month + $date.year + "_" + $date.hour + $date.minute --(retirando de date day, month, year, hour, minute, concatenando em timestamp)
 $backupfile = $backuppath + $database + "_" + $timestamp +".sql" --(caminho e pastas do backup)
-$backupzip = $backuppath + $database + "_" + $timestamp +".zip" -- cmpactando
+$backupzip = $backuppath + $database + "_" + $timestamp +".zip" -- compactando
   
 # FAZ O BACKUP ($ variáveis, flush log, cria um novo log)
 mysqldump.exe --defaults-extra-file=$config --log-error=$errorLog  --result-file=$backupfile  --all-databases --single-transaction --flush-logs --routines --events 
@@ -673,23 +673,23 @@ powershell -ExecutionPolicy RemoteSigned C:\MYSQLAPOIO\backupLOGdb.ps1
 
 @echo off
 
-for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
+for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a" -- definindo data e hora
 set "YY=%dt:~2,2%" & set "YYYY=%dt:~0,4%" & set "MM=%dt:~4,2%" & set "DD=%dt:~6,2%"
 set "HH=%dt:~8,2%" & set "Min=%dt:~10,2%" & set "Sec=%dt:~12,2%" & set "MS=%dt:~15,3%"
-set "dirname=%DD%_%MM%_%YY%_%HH%%Min%"
+set "dirname=%DD%_%MM%_%YY%_%HH%%Min%" -- concatenando dia, mês, ano, minuto
  
-set basedir=C:
-set workdir=C:\mysqlapoio\backups\
-set mysqlpassword=1234
-set mysqluser=root
-set mysqldb=Dbteste
+set basedir=C: -- definindo o disco (ideal disco diferente do c)
+set workdir=C:\mysqlapoio\backups\ -- definindo o caminho
+set mysqlpassword=1234 -- diferente do arquivo powershell, que busca no config .cnf, deixando a senha e user. Ideal, por segurança, é pôr em outro arquivo
+set mysqluser=root -- diferente do arquivo powershell, que busca no config .cnf, deixando a senha e user
+set mysqldb=Dbteste -- definindo base de dados
  
-mysqldump -u %mysqluser% -p%mysqlpassword% %mysqldb% >%workdir%\backupdbtesteviabatch.sql
+mysqldump -u %mysqluser% -p%mysqlpassword% %mysqldb% >%workdir%\backupdbtesteviabatch.sql -- bkp por meio do root, senha, db, caminho, nome do arquivo bat
 
-7z.exe a -tzip %dirname%.7z %workdir%\backupdbtesteviabatch.sql
+7z.exe a -tzip %dirname%.7z %workdir%\backupdbtesteviabatch.sql -- compactando -- dirname(dia, mes, hora, minuto) -- workdir (caminho)
 
-MOVE %dirname%.7z %workdir%
-DEL %workdir%\backupdbtesteviabatch.sql
+MOVE %dirname%.7z %workdir% -- (mover o arquivo zipado, de qualquer lugar onde tenha sido salvo, para este caminho)
+DEL %workdir%\backupdbtesteviabatch.sql -- deletando o arquivo bkp, deixando apenas zip
 
 -- -------------------------------------------------------------------------------------------------------
 
@@ -1023,26 +1023,4 @@ SHOW EVENTS;
 -- ABRACO E VAMOS MUDAR UM POUCO DE ASSUNTO PORQUE ACHO QUE JÁ ESTÁ CANSADO DE BACKUP. VOLTAREMOS A FALAR NO LINUX...
 
 -- FIM
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                                                                                                                                                                                  
+                                                                                                                                                                                                                                                         
