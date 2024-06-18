@@ -756,6 +756,10 @@ DROP DATABASE DBTESTE;
 -- 2.1. VAMOS CRIAR UM NOVO BANCO DE DADOS QUE SERA USADO PARA RESTAURAR NOSSO BACKUP E PODER APLICAR OS BINLOGS SEM QUE NENHUMA APLICACAO CONTINUE A REALIZAR TRANSACOES NO DBTESTE
 CREATE DATABASE dbteste_emrestauracao;
 
+-- no sqlserver é possivel deixar o db offline (denied) acesso negado antes de liberar para os users fazendo o bkp incremental.
+-- Mas no mysql n tem isso. Os users podem fazer varias modificaççoes durante bkp incremental, inerferindo a integridade. Se fosse apenas o full n teria problema, pois o mysql trava, pois tem as transações do binglog, 
+-- então pode-se criar um novo banco com outro nome, faz todas as operacoes incrementais, depois faz um bkp full depois cria novamente com o nome original, no caso dbteste
+
 -- 3. Vamos ao DOS agora e rodar o comando para restaurar o backup full
 -- VAMOS CRIAR UM BANCO QUE NINGUEM TENHA ACESSO, OU NENHUMA APLICACAO, ENQUANTO ESTAMOS RESTAURANDO O BACKUP E APLICANDO AS TRANSACOES QUE ESTAO NO BIN LOG
 -- Va na pasta abaixo onde criou seu backup e edite o arquivo de backup dbteste_522022_015.sql, substituindo o nome do banco dbteste para dbteste_emrestauracao e nao de acesso para ninguem
@@ -782,15 +786,31 @@ mysqlbinlog DESKTOP-MKCDD14-bin.000195 | mysql -uroot -p dbteste_emrestauracao
 mysqlbinlog DESKTOP-MKCDD14-bin.000196 | mysql -uroot -p dbteste_emrestauracao 
 mysqlbinlog DESKTOP-MKCDD14-bin.000197 | mysql -uroot -p dbteste_emrestauracao 
 
+-- meus binlogs
+
+mysqlbinlog LUCAS-bin.000030 | mysql -u root -p dbteste_emrestauracao
+mysqlbinlog LUCAS-bin.000031 | mysql -u root -p dbteste_emrestauracao
+mysqlbinlog LUCAS-bin.000032 | mysql -u root -p dbteste_emrestauracao
+mysqlbinlog LUCAS-bin.000033 | mysql -u root -p dbteste_emrestauracao
+mysqlbinlog LUCAS-bin.000034 | mysql -u root -p dbteste_emrestauracao
+
 -- Poderiamos aplicar os varios binlogs sem verificar o conteudo antes, como fizemos no exemplo anterior, ou usar o comando abaixo para gerar os .sql antes, abrir os binlogs e de repente remover um comando 
 -- especifico a sequencia das restauracao. Cuidado com esta opcao, para nao remover uma alteracao feita em tabelas que o proximo comando poderia ter problemas de integridade referencial.
 
 cd C:\mysqlapoio\backups\
 
 mysqlbinlog DESKTOP-MKCDD14-bin.000194 >  C:\mysqlapoio\backups\bklogs.sql | mysql -uroot -p dbteste_emrestauracao 
-mysqlbinlog DESKTOP-MKCDD14-bin.000195 >> C:\mysqlapoio\backups\bklogs.sql | mysql -uroot -p dbteste_emrestauracao 
+mysqlbinlog DESKTOP-MKCDD14-bin.000195 >> C:\mysqlapoio\backups\bklogs.sql | mysql -uroot -p dbteste_emrestauracao -- somando os binlog ao arquivo, que poderia ter sido modificado antes de implementar o bkp
 mysqlbinlog DESKTOP-MKCDD14-bin.000196 >> C:\mysqlapoio\backups\bklogs.sql | mysql -uroot -p dbteste_emrestauracao 
 mysqlbinlog DESKTOP-MKCDD14-bin.000197 >> C:\mysqlapoio\backups\bklogs.sql | mysql -uroot -p dbteste_emrestauracao 
+
+-- meus binlogs criando arquio .sql
+
+mysqlbinlog LUCAS-bin.000030 > C:\mysqlapoio\backups\bklogs.sql | mysql -u root -p dbteste_emrestauracao
+mysqlbinlog LUCAS-bin.000031 >> C:\mysqlapoio\backups\bklogs.sql | mysql -u root -p dbteste_emrestauracao
+mysqlbinlog LUCAS-bin.000032 >> C:\mysqlapoio\backups\bklogs.sql | mysql -u root -p dbteste_emrestauracao
+mysqlbinlog LUCAS-bin.000033 >> C:\mysqlapoio\backups\bklogs.sql | mysql -u root -p dbteste_emrestauracao
+mysqlbinlog LUCAS-bin.000034 >> C:\mysqlapoio\backups\bklogs.sql | mysql -u root -p dbteste_emrestauracao
 
 -- Repare no arquivo C:\mysqlapoio\backups\bklogs.sql que esta sendo concatenado com todos os binlogs, aumentando de tamanho.
 -- No final quando tiver o arquivo unico e por exemplo, se precisar, poderá remover algum comando critico, como um delete sem where ou algo especifico que nao impacte a integridade
