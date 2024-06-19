@@ -696,49 +696,42 @@ DEL %workdir%\backupdbtesteviabatch.sql -- deletando o arquivo bkp, deixando ape
 
 -- Puxando usser e password de config.cnf e apagando bkp após 30 dias
 
-	@echo off
-setlocal enabledelayedexpansion
 
-:: Get local datetime and format it
+@echo off
+REM Obter a data e hora atual
 for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
-set "YY=!dt:~2,2!" & set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
-set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!" & set "MS=!dt:~15,3!"
-set "dirname=!DD!_!MM!_!YY!_!HH!!Min!"
+set "YY=%dt:~2,2%"
+set "YYYY=%dt:~0,4%"
+set "MM=%dt:~4,2%"
+set "DD=%dt:~6,2%"
+set "HH=%dt:~8,2%"
+set "Min=%dt:~10,2%"
+set "Sec=%dt:~12,2%"
+set "MS=%dt:~15,3%"
+set "dirname=%DD%_%MM%_%YY%_%HH%%Min%"
 
-:: Set directories
-set "basedir=C:"
-set "workdir=C:\mysqlapoio\backups\"
+REM Definir diretórios e nome do banco de dados
+set basedir=C:
+set workdir=C:\mysqlapoio\backups\
+set mysqldb=dbteste
 
-:: Read MySQL credentials from config.cnf
-for /f "tokens=1,2 delims==" %%i in (config.cnf) do (
-    if "%%i"=="user" set "mysqluser=%%j"
-    if "%%i"=="password" set "mysqlpassword=%%j"
-)
+REM Caminho completo para o 7z.exe
+set ziptool="C:\Program Files\7-Zip\7z.exe"
 
-:: Perform MySQL dump
-mysqldump -u !mysqluser! -p!mysqlpassword! %mysqldb% > "%workdir%\backupdbtesteviabatch.sql"
+REM Dump do banco de dados MySQL para um arquivo SQL no diretório de backup
+mysqldump --defaults-extra-file=config.cnf %mysqldb% > %workdir%\backupdbtesteviabatch.sql
 
-:: Check if mysqldump was successful before proceeding
-if not errorlevel 1 (
-    :: Create a compressed archive with 7-Zip
-    7z.exe a -tzip "%workdir%\!dirname!.7z" "%workdir%\backupdbtesteviabatch.sql"
+REM Compactar o arquivo SQL
+%ziptool% a -tzip %workdir%\%dirname%.7z %workdir%\backupdbtesteviabatch.sql
 
-    :: Move the archive if it was created successfully
-    if exist "%workdir%\!dirname!.7z" (
-        move "%workdir%\!dirname!.7z" "%workdir%"
-    )
+REM Mover o arquivo compactado para o diretório de trabalho (opcional se já está no local correto)
+MOVE %workdir%\%dirname%.7z %workdir%
 
-    :: Delete the SQL dump file
-    del "%workdir%\backupdbtesteviabatch.sql"
-) else (
-    echo mysqldump failed, check your username and password.
-)
+REM Excluir o arquivo SQL original
+DEL %workdir%\backupdbtesteviabatch.sql
 
-:: Delete backups older than 30 days
-forfiles /p "%workdir%" /s /m *.7z /d -30 /c "cmd /c del @path"
-
-endlocal
-
+REM Apagar backups antigos (mais de 30 dias)
+forfiles /p %workdir% /s /m *.7z /d -30 /c "cmd /c del @path"
 
 -- -------------------------------------------------------------------------------------------------------
 
