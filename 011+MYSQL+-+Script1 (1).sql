@@ -913,10 +913,10 @@ clone LOCAL DATA DIRECTORY 'C:\\mysqlapoio\\clonebackup';
 -- Error Code: 1524. Plugin 'clone' is not loaded	0.000 sec
 -- Houve algum problema para carregar a dll do plugin. Cheque o arquivo my.ini ou my.cnf na pasta C:\ProgramData\MySQL\data\MySQL Server 8.0 e coloque as linhas abaixo do label [mysqld]
 
-plugin-load="mysql_clone.dll"
-clone-enable-compression
-clone-max-data-bandwidth=50
-clone-max-network-bandwidth=100
+plugin-load="mysql_clone.dll" -- carrega dll
+clone-enable-compression -- torna o bkp mais rápido
+clone-max-data-bandwidth=50 -- tamanho maximo de entrada e saída do disco (mb)
+clone-max-network-bandwidth=100 --  tamanho maximo de entrada e saída da rede (mb)
 
 -- Parar o servico mysql e dar start novamente
 
