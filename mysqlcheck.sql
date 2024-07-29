@@ -197,9 +197,9 @@ set "YY=%dt:~2,2%" & set "YYYY=%dt:~0,4%" & set "MM=%dt:~4,2%" & set "DD=%dt:~6,
 set "HH=%dt:~8,2%" & set "Min=%dt:~10,2%" & set "Sec=%dt:~12,2%" & set "MS=%dt:~15,3%"
 set "dirname=%DD%_%MM%_%YY%_%HH%%Min%"
  
-mysqlcheck  --defaults-file=C:\mysqlapoio\config.cnf --all-databases > C:\mysqlapoio\logcheckdb\checkdb%dirname%.txt
-forfiles /p "C:\mysqlapoio\logcheckdb" /s /m *.* /D -15 /C "cmd /c del @path"
-
+mysqlcheck  --defaults-file=C:\mysqlapoio\config.cnf --all-databases > C:\mysqlapoio\logcheckdb\checkdb%dirname%.txt -- checa tudo, user e password automatico puando do config.cnf [mysqlcheck]
+forfiles /p "C:\mysqlapoio\logcheckdb" /s /m *.* /D -15 /C "cmd /c del @path" -- forfiles apaga todos os arquivos com mais de 15 dias (sempre em dias), pode-se alterar, para não ficar crescendo eternamente
+ 
 -- 4. Vamos alterar o arquivo config.cnf para incluir o label do mysqlcheck e colocar ali o user root e a senha, para nao colocar no script checkdb.bat, conforme abaixo:
 
 # Configuracoes de usuario
