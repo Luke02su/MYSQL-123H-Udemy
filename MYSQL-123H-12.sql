@@ -205,15 +205,15 @@ forfiles /p "C:\mysqlapoio\logcheckdb" /s /m *.* /D -15 /C "cmd /c del @path" --
 # Configuracoes de usuario
 [mysqldump]
  user=root
- password=1234
+ password=root
 
 [mysqladmin]
  user=root
- password=1234
+ password=root
 
 [mysqlcheck]
  user=root
- password=1234
+ password=root
 
 -- 5. Va no DOS, na pasta C:\mysqlapoio\ e execute como um teste o script checkdb.bat e veja se foi executado sem erros. Va na pasta C:\mysqlapoio\logcheckdb e veja se
 -- o arquivo foi criado. Caso tenha havido algum erro, refaça o processo. O normal é seu windows ter o comando forfiles instalado. Se nao tiver, va no google e faca donwload.
