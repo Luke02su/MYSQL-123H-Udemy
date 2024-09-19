@@ -163,23 +163,25 @@ select * from mysql.slow_log;
 
 -- Para gerar arquivo no windows com operacoes mais lentas, podemos rodar no workbench
 
-SET GLOBAL slow_query_log = 1;
+SET GLOBAL slow_query_log = 1; -- ativindo logs de transações lentas
 SET GLOBAL long_query_time = 0.5; -- tempo em segundos que o mysql ira salvar no log as operacoes que levaram pelo menos 5 segundos
-SET GLOBAL log_output = 'file';
-SET GLOBAL slow_query_log_file  = 'D:\\BKP_MYSQL_DATA\\\Data\\mysqld-slow-queryNEW.log';
+SET GLOBAL log_output = 'file'; -- gerar em arquivo no windows, não em table
+SET GLOBAL slow_query_log_file  = 'D:\\MYSQL_CURSO\\Data\\mysqld-slow-queryNEW.log'; -- gerando log neste arquivo com queries com mais de 0.5 segundos
 
-SELECT SLEEP(10);
+SELECT SLEEP(12); -- demora 12 segundos
 
--- Va no diso e veja o que foi gerado no arquivo mysqld-slow-queryNEW.log
+-- Va no disco e veja o que foi gerado no arquivo mysqld-slow-queryNEW.log
 
 -- e para desabilitar o log no workbench
 
-SET GLOBAL slow_query_log = 0;
+-- Se parar SQL, não gera mais logs. Para eixar indefinido, deve-se mudar as variáveis do arquivo my.ini
+
+SET GLOBAL slow_query_log = 0; -- desativando
 
 -- SE TIVER ALGUM ERRO ou nao for gerado o arquivo de log na pasta, verifique se nesta pasta tem permissao do user de servico do mysql
 -- para criar e alterar arquivos. Va na pasta Data, onde estao seus dados, botao direito, propriedades, seguranca, e verifique se o user do 
 -- mysql está lá com a opcao full control ou modificar. O usuario padrao é REDE se estiver em portugues. Veja em servicos mysql, na coluna
--- fazer logon como, o nome do usuario de servico que esta rodando seu mysq,
+-- fazer logon como, o nome do usuario de servico que esta rodando seu mysql,
 
 -- --------------------------------------------------------------------------------------------------------------------------
 
