@@ -548,16 +548,4 @@ LEFT JOIN
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
                                                                                                                                                                                                                                                                                                                                                        SET global general_log_file= 'D:\\BKP_MYSQL\\BKP_MYSQL_DATA\\mysqld-general-queryWB.log'
