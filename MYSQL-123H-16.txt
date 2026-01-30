@@ -1,0 +1,151 @@
+Curso: MYSQL
+Instrutor: Sandro Servino
+https://www.linkedin.com/in/sandroservino/?originalSubdomain=pt
+https://www.udemy.com/user/sandro-servino-3/
+
+-- MySQL Enterprise Backup
+https://www.mysql.com/products/enterprise/backup.html
+https://dev.mysql.com/doc/workbench/en/wb-mysql-enterprise-backup-online-backup.html
+https://docs.huihoo.com/mysql/workbench/6.3/wb-admin.html#wb-mysql-enterprise-backup
+
+MySQL Enterprise Backup fornece backup e recuperação de nível empresarial para MySQL. Ele oferece backups dinâmicos, 
+on-line e sem bloqueio em várias plataformas, incluindo Linux, Windows, Mac e Solaris.
+
+O MySQL Enterprise Backup oferece:
+
+Backups on-line "quentes"  - Os backups ocorrem totalmente on-line, sem interromper as transações do MySQL
+Desempenho 49x Melhor comparado com mysqldump no processo de backup e 80x melhor comparado com mysqldump no processo de restore, tendo como amostra banco de cerca de 73GB
+Backup incremental  - Backup apenas dos dados que foram alterados desde o último backup
+Backup parcial  - segmente tabelas ou espaços de tabela específicos
+Backup de instância completo  - Faz backup de dados, bem como configuração e outras informações para criar facilmente uma "réplica" completa
+Recuperação Rápida  - Recupere os servidores online e crie servidores replicados
+Point-in-Time Recovery (PITR)  - Recupere para uma transação específica
+Restauração seletiva "quente" online - traga de volta apenas as tabelas selecionadas para um banco de dados em execução
+Backup direto de armazenamento em nuvem por meio de APIs S3 e Swift - Backup e restauração diretamente de/para Oracle Storage Cloud, S3 e outros armazenamentos em nuvem usando a API AWS S3
+Compressão LZ4 Avançada - Suporta compressão LZ4 altamente eficiente, de baixo impacto e ultrarrápida, bem como LZMA e zlib
+Criptografia AES 256 - Criptografia AES (Advanced Encryption Standard) de 256 bits incorporada para proteger todos os dados de backup confidenciais
+NOVO! Suporta MySQL TDE - Permite backup de qualidade de arquivamento seguro e restauração de arquivos e chaves de banco de dados criptografados TDE
+Validação de backup - fornece verificações de garantia para confirmar a integridade e a qualidade do backup, confirmando se as páginas internas são válidas e as somas de verificação de arquivo correspondem.
+Excluir Tabelas - Exclua tabelas desnecessárias de seus Backups, economizando tempo e espaço de backup
+Incluir tabelas - Faça backup apenas das tabelas necessárias para melhor granularidade e usabilidade.
+Monitoramento Contínuo  - Monitore o progresso e o uso do espaço em disco
+Compressão  - Reduza os custos reduzindo os requisitos de armazenamento em até 90%
+Backup em fita  - Transmita backup em fita ou outras soluções de gerenciamento de mídia
+Restaurar para um local separado  - crie clones rapidamente para configuração de replicação rápida
+Multiplataforma  - Backup e restauração em Linux, Windows, Mac e Solaris
+
+-- INSTALANDO O MYSQL ENTERPRISE BACKUP
+
+-- ETAPAS
+
+-- 1. Mesmo não tendo marcado a opção de baixar, o instalador traz o backup enterprise para ser instalado. Para isto
+-- veja no menu lateral do windows server, a pasta MYSQL e clique no programa MYSQL Instaler - Comercial, CLIQUE BOTÃO ADD e selecione
+-- o programa MYSQL Enterprise Backup para ser instalado.
+
+-- 1.1 Caso tenha algum problema, ou seja, não ache o instalador no menu MYSQL ou não ache o mysql enterprise dentro do instalador, retorne ao site da oracle, para baixar o pacote do mysql enterprise backup, conforme ja demonstramos nas aulas
+-- passadas de como pode baixar um software especifico:
+-- Para baixar o versão mysql enterprise backup vá no google e busque msql enterprise download
+-- ou use o link abaixo, caso ainda esteja disponivel para baixar a versao MYSQL ENTERPRISE BACKUP, versão full trial, ou seja, não pode entrar em produção, apenas para avaliação.
+-- Link Download MySQL Enterprise Edition Trial - https://www.mysql.com/downloads/enterprise/
+-- No link MySQL Enterprise Backup, selecionar a opcao Download from Oracle eDelivery »
+-- Clicar em SIGN IN, e colocar seu login e senha senha que criou para baixar a primeira vez o mysql enterprise
+-- Selecionar o MYSQL ENTERPRISE BACKUP e realizar download. Descompactar ja no seu notebook e Copiar a pasta onde esta os arquivos para dentro da VM do Banco MYSQL pela pasta compartilhada da vm.
+-- Copiar para disco c: da vm, descompactar os arquivos onde estarao o executavel do backup e as bibliotecas.
+
+-- 2. Retorne ao mysql workbench e configure os pre requisitos para o mysql enterprise backup no menu Server->MySQL Enterprise Backup ou pelo menu lateral sob MYSQL ENTERPRISE, no item Online Backup
+
+-- Algumas informacoes sobre as opcoes do backup:
+
+-- 2.1 apply-log: Atualiza as tabelas do InnoDB no backup, incluindo quaisquer alterações feitas nos dados enquanto o backup estava em execução. Durante o processo de backup
+-- é normal operações sejam feitas no banco e assim são sempre gravadas no log e assim no final do backup, é feito um lock no banco para as transacoes que estavam no log
+-- sejam copiadas para o backup. Se esta operacao nao for feito no backup terá que ser feita no restore. É igual ao backup do logtail do sql server quando antes de realizarmos
+-- um restore do backup, realizamos um backup do log tail, ou seja, das ultimas transacoes que estavam no log e nao estavam no backup do log no sql server, assim quando 
+-- formos efetivamente realizar o restore, conseguriamos retornar o banco até a ultima transacao comitada no log.
+
+-- 2.2 Importante
+-- Normalmente, um backup parcial é mais difícil de restaurar do que um backup completo, porque os dados de backup podem não incluir as partes inter-relacionadas necessárias 
+-- para constituir uma instância MySQL completa. Em particular, as tabelas InnoDB possuem IDs internos e outros valores de dados que só podem ser restaurados para a
+-- mesma instância, não para um servidor MySQL diferente.
+
+OLHAR ESTE LINK SE DESEJAR REALIZAR O MESMO BACKUP MAS VIA SCRIPT
+https://dev.mysql.com/doc/mysql-enterprise-backup/8.0/en/partial.html
+https://dev.mysql.com/doc/mysql-enterprise-backup/8.0/en/
+
+mysqlbackup \
+ --host=localhost --user=mysqluser --protocol=TCP --port=3306 \
+ --backup-dir=$MEB_TEMP_BACKUP_DIR --backup-image=$MEB_BACKUPS_DIR/my.mbi \
+ --include-tables="\.emp" \
+ backup-to-image
+
+-- Para fazer backup de uma instancia mysql inteira via comando 
+https://dev.mysql.com/doc/mysql-enterprise-backup/8.0/en/mysqlbackup.backup.html
+
+-- ------------------------------------------------------------------------------------------
+
+-- Backup incremental e diferencial e Criando Backups Incrementais Usando Apenas o Redo Log
+https://dev.mysql.com/doc/mysql-enterprise-backup/8.0/en/mysqlbackup.incremental.html
+
+-- Cada backup diferencial inclui todas as alterações feitas nos dados desde que o último backup completo foi executado. 
+-- Para restaurar dados até, por exemplo, time t, basta restaurar primeiro o backup completo e depois, em cima dele, o backup diferencial.
+
+-- O primeiro backup em uma série incremental é sempre um backup diferencial; mas depois disso, cada backup incremental 
+-- contém apenas as alterações feitas desde o último backup incremental. 
+
+-- A compactação de backup (ou seja, o uso das opções de compactação ) não é suportada quando você executa backups incrementais apenas com o log de redo. 
+-- Se a compactação de backup for importante para você, não use a --incremental-with-redo-log-only opção.
+
+-- Voce pode ter ganhos de performance fazendo backup incremental lendo apenas os arquivos de redo_log, mas pode ter erros tambem e nao pode compactar
+-- Eu geralmente uso apenas o metodo tradicional de fazer backup incremental e nao utilizo backup incremental lendo os arquivos de redo_log
+
+-- exemplo backup incremental via comando 
+
+mysqlbackup --defaults-file=/home/dbadmin/my.cnf \
+  --incremental --incremental-base=history:last_backup \
+  --backup-dir=/home/dbadmin/temp_dir \
+  --backup-image=incremental_image1.bi \
+   backup-to-image
+
+-- Exemplo de informacoes que ficam nas tabelas de controle dos backups
+
+DESCRIBE mysql.backup_progress;
+DESCRIBE mysql.backup_history;
+
+select * from mysql.backup_progress;
+select * from mysql.backup_history;
+
+-- ------------------------------------------------------------------------------------------------------------------------
+
+--fim
+
+
+
+Curso: MYSQL
+Instrutor: Sandro Servino
+https://www.linkedin.com/in/sandroservino/?originalSubdomain=pt
+https://www.udemy.com/user/sandro-servino-3/
+
+-- MySQL Enterprise Backup
+
+-- RESTORE
+-- https://dev.mysql.com/doc/mysql-enterprise-backup/4.0/en/mysqlbackup.restore.html
+
+-- Vamos simular um caso de desastre ou necessidade de subir uma instancia sql com todas as bases em outra instancia SQL
+-- Não irei instalar uma nova instancia. Vamos fazer um backup full novo e dois backups incrementais e depois vamos realizar um restore
+
+-- ETAPAS
+
+-- 1. Precisamos parar o servico para realizar o restore
+-- 2. Vamos renomear a pasta data, para pasta dataold
+-- 3. Vamos selecionar opcao para fazer restore
+-- 4. Quando terminado vamos na pasta data e vamos incluir em security o user de servico para mysql criado no ad com todos os direitos menos full control.
+--     No meu caso, foi craido user mysqlserv@companyx.com no ad e vinculado no servico mysql. Precisamos fazer isto, senao o mysql nao sobe.
+-- 5. Dar start no mysql, abrir o workbench e verificar as bases e os dados.
+
+-- obs: Posso restaurar um backup full ou selecionar 1 backup incremental especifico diretamente, que o mysql irá restaurar 
+--      o ultima backul full e depois ira restaurar os backups incrementais até o backup incremental selecionado.
+
+-- ------------------------------------------------------------------------------------------------------------------------
+
+--fim
+
+
