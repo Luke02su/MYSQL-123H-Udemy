@@ -1,0 +1,373 @@
+Curso: MYSQL
+Instrutor: Sandro Servino
+https://www.linkedin.com/in/sandroservino/?originalSubdomain=pt
+https://www.udemy.com/user/sandro-servino-3/
+
+PERFORMANCE
+
+-- 1. MySQL Enterprise Performance Dashboard
+https://dev.mysql.com/doc/workbench/en/wb-performance-dashboard.html
+
+-- Vamos falar sobre alguns indicadores e configuracoes em nivel de instancia MYSQL importantes:
+
+-- 1.1 InnoDB buffer pool
+
+PROVAVELMENTE A CONFIGURACAO MAIS IMPORTANTE QUE TENHA QUE ALTERAR PARA TRAZER MAIS PERFORMANCE PARA SUA INSTANCIA MYSQL
+
+O buffer pool do InnoDB é o espaço de memória que contém muitas estruturas de dados na memória do InnoDB, buffers, caches, índices e até mesmo dados de linha. 
+innodb_buffer_pool_size é o parâmetro de configuração do MySQL que especifica a quantidade de memória alocada para o pool de buffer InnoDB pelo MySQL. 
+Esta é uma das configurações mais importantes na configuração de hospedagem do MySQL e deve ser configurada com base na RAM do sistema disponível.
+
+A prática mais comumente seguida é definir esse valor em 70% – 80% da RAM do sistema. Embora funcione bem na maioria dos casos, esse método pode não ser ideal em 
+todas as configurações. Vamos pegar o exemplo de um sistema com 192 GB de RAM. Com base no método acima, chegamos a cerca de 150 GB para o tamanho do buffer pool. 
+No entanto, este não é realmente um número ideal, pois não aproveita totalmente o grande tamanho de RAM disponível no sistema e deixa para trás cerca de 40 GB de memória. 
+Essa diferença pode ser ainda mais significativa à medida que passamos para sistemas com configurações maiores, onde deveríamos utilizar mais a RAM disponível.
+
+Em média para ambientes corporativos exclusivos para MYSQL, rodando no Windows Server e com mais memória disponivel como por exemplo 32GB ou mais, 
+podemos alocar 10% de memória RAM para o Sistema Operacional para evitar Swapp out em disco e o restante para o MYSQL
+através da configuração do buffer pool, mas para ambientes grandes com mais de 128GB de RAM, 12GB apenas para o WINDOWS SERVER, é provavelmente desnecessário, mas precisa avaliar,
+porque estas necessidades podem ser alteradas com novas versões dos sistemas operacionais.
+
+Em ambientes Linux ou mesmo para maquinas de dev que rodam o MYSQL, podemos considerar:
+
+Para sistemas com RAM de tamanho pequeno (entre 1 e 4 GB)
+Para sistemas executados com menos de 4 GB de RAM, é melhor usar o valor de configuração padrão do MySQL de 128 MB para uma máquina com 1GB de RAM total,
+para o tamanho do buffer pool do InnoDB, aumentando até 2 GB para o MYSQL e testando o ambiente.
+
+Para sistemas com RAM de tamanho médio (4 GB – 32 GB)
+Podem configurar um valor inicial de cerca de 256M para o MYSQL para uma RAM total de 4GB até 5% do total geral da RAM e testar o ambiente.
+
+Para sistemas com RAM de tamanho superior (> 32 GB)
+Para sistemas com tamanhos de RAM superiores a 32 GB, podemos calcular as necessidades do sistema operacional como 5% do tamanho de RAM do nosso sistema, mas para máquinas
+com muita memória, poderá diminuir a quantidade de memória alocada para o Linux.
+
+Variavel a ser configurada no my.ini ou my.cnf:
+innodb_buffer_pool_size=8388608  
+O numero acima é em bytes.
+
+Podemos verificar no workbench qual memória do servidor foi alocada para MYSQL, rodando o comando:
+SELECT @@innodb_buffer_pool_size;
+
+e podemos até mesmo alterar a quente, com o comando:
+SET GLOBAL innodb_buffer_pool_size=2147483648;
+Alocamos 2gb da memoria do server para o MYSQL
+
+# VAMOS MUDAR O PADRAO DO MYSQL
+#innodb_buffer_pool_size=2147483648
+#OU 2G
+innodb_buffer_pool_size=2G
+
+Rode novamente:
+SELECT @@innodb_buffer_pool_size;
+
+ou
+
+SHOW GLOBAL VARIABLES LIKE 'innodb_buffer_pool_size';
+
+Agora, para deixar em definitivo, teria que alterar esta opcao no my.ini ou my.cnf e dar boot no servico do MYSQL
+innodb_buffer_pool_size=2147483648
+
+ou
+
+innodb_buffer_pool_size=2G
+
+OBS: VERIFIQUE AGORA COMO FICOU O USO DO BUFFER POOL NO GRAFICO DE PERFORMANCE DASHBOARD
+
+-- ----------
+
+Em relacao ao grafico o dashboard, algumas informacoes:
+
+-- Usage
+
+Read Requests: O número de solicitações de leitura lógica (por segundo) que o InnoDB executou para o buffer pool.
+
+Write Requests: O número de pedidos de gravação lógicos (por segundo) que o InnoDB executou no buffer pool.
+
+Disk Reads: O número de leituras lógicas que o InnoDB não pôde satisfazer no buffer pool. Como resultado, estes tiveram que ser lidos do disco.
+
+InnoDB Buffer Pool Usage:  A porcentagem do conjunto de buffers do InnoDB que está em uso. Se estiver com mais de 95% de uso, com muita leitura no disco (Disk Reads),
+atenção para se possivel aumentar a configuracao de buffer pool disponivel para o MYSQL no my.ini ou my.cnf, verificar necessidade de criar indices para diminuir
+quantidade de dados lidos no disco ou melhorar as queries e em ultimo caso aumentar a capacidade do servidor.
+
+Alguns conselhos:
+
+Sempre que instalar o MySQL, faça ajuster finos no valor de innodb_buffer_pool_size.
+Monitore o Buffer Pool e faça ajuste de acordo com a carga dos bancos de dados.
+Logo depois do ajuste, aguarde o sistema estabilizar, porque pode ter muitas transacoes em fila aguardando recursos de memória e ai a disponibilidade de buffer pools poderia ainda estar baixa no grafico.
+Mantenha uma folga no buffer pool, para possibilitar que novas transacoes e recursos utilize este espacos de memoria. Nao deixe ficar em 100% de forma continua.
+Não se esqueça de salvar a configuração no my.cnf ou my.ini.
+
+-- ----------------------------------------------------------------------------------------------------------------------------
+
+InnoDB Redo Log
+
+-- Writes (redo log)
+
+Writes: O número de escritas gravadas no arquivo de redo log do InnoDB.
+
+. Todas as operaçöes que alteram dados no banco, por padrao, são registradas no redo log, em 2 arquivos que ficam na pasta data.
+. Por padrão, o redo log é representado fisicamente no disco por dois arquivos denominados ib_logfile0e ib_logfile1.
+. O MySQL grava nos arquivos de redo log de forma circular. A passagem de dados pelo redo log é representada por um valor LSN cada vez maior.
+. O redo log é uma estrutura de dados baseada em disco usada durante a recuperação de falhas para corrigir dados gravados por transações incompletas.
+
+Para alterar o tamanho do arquivo de log, no my.ini ou my.cnf, configure innodb_log_file_size. Para aumentar o número de arquivos de log, configure innodb_log_files_in_group.
+Pare o MYSQL e de start novamente. O ideal é manter os dois arquivos em um disco rápido SSD em local diferente do disco onde estáo os arquivos de dados, pasta data, para evitar
+contenção quando estiver trabalhando com disco magnético.
+
+InnoDB cria dois arquivos de redo log nomeados ib_logfile0 e ib_logfile1 no diretório de dados, por padrão.
+
+As seguintes opções podem ser usadas para modificar a configuração padrão:
+
+innodb_log_group_home_dir define o caminho do diretório para os arquivos de log do InnoDB. Se esta opção não estiver configurada,
+os arquivos de log do InnoDB serão criados no diretório de dados do MySQL (data).
+
+Você pode usar essa opção para colocar os arquivos de log em um local de armazenamento físico diferente dos arquivos de dados para evitar possíveis conflitos de recursos de E/S. 
+Por exemplo:
+
+# VAMOS MUDAR O PADRAO DO MYSQL
+innodb_log_file_size=128M
+innodb_log_files_in_group=3
+# criar a pasta baixo e dar direito de ler, criar e alterar arquivos nesta pasta para o user de servico do mysql
+innodb_log_group_home_dir = l:\Log
+
+Observação
+InnoDB não cria diretórios, portanto, certifique-se de que o diretório de log exista antes de iniciar o servidor. Use o comando do linux ou DOS mkdir para criar os diretórios necessários.
+Certifique-se de que o usuario do servico do MySQL tenha os direitos de acesso adequados para criar arquivos no diretório de log. 
+De maneira mais geral, o servidor deve ter direitos de acesso em qualquer diretório em que precise criar arquivos de log.
+
+-- -------------------------------------------------------
+
+- Otimizando o InnoDB Redo Logging
+
+O tamanho dos arquivos de log redo pode influenciar no desempenho, pois os comportamentos de inscrita do banco de dados dependem dos tamanhos dos logs redo. 
+Geralmente, os arquivos de log redo maiores melhoram o desempenho. Os arquivos de log subdimensionados aumentam a atividade de checkpoint (operador que checa transacoes com commit no log
+e grava a transacao no arquivo fisico final do banco de dados) e assim reduzem o desempenho. No entanto, arquivos de redo log grandes aumentam o tempo de recuperação, em caso de parada do mysql e start. 
+Dessa forma, se a eficiência operacional diária é mais importante do que minimizar o tempo de recuperação, então, defina os arquivos de log redo on-line para um valor relativamente grande.
+
+Torne seus arquivos de redo log bem maiores que o padrão. Eu constumo iniciar uma configuracao desta variavel entre 1 e 2 Gigabytes para bancos de dezenas de GBYTES, 
+e 10 a 20 Gybtes para bancos entre 100 e 200 Gigabytes, mas que rodem em ambientes com disco SSD muito rápidos para se houver necessidade de parar o MYSQl e reiniciar, nao demorar
+muito rempo para o MYSQL ler as transacoes nestes arquivos que ainda nao estavam no arquivo final do banco e garantir estas transacoes, o que pode demorar certo tempo, se houver
+muitas transacoes ainda pendentes no log, em arquivos muito grandes com disco lento (disco magnetico), entao cuidado para nao criar arquivos de logs com centenas de gbytes em disco lento
+porque pode demorar muito tempo para o MYSQL retornar, as vezes horas, e ai seus clientes ficarão com problemas nos sistemas e terá um grande stress para explicar porque o sistema ainda não voltou a operar.
+
+Voce ainda pode trabalhar com percentual entre 25 e 100% dos arquivos de log combinados de acordo com o tamanho do seu buffer pool alocado para MYSQL, visando minimizar a quantidade
+de flush dos dados em memória para o log que fica no disco que terá impacto negativo em termos de performance, se trabalhar com discos lentos, compartilhados com o local(disco) onde
+estão os dados dos bancos.
+Precisa configurar e monitorar o ambiente.
+
+innodb_log_files_in_group define o número de arquivos de log no grupo de log. O valor padrão e recomendado é 2.
+
+innodb_log_file_size define o tamanho em bytes de cada arquivo de log no grupo de logs. O tamanho do arquivo de log combinado ( innodb_log_file_size* innodb_log_files_in_group) 
+não pode exceder o valor máximo, que é ligeiramente inferior a 512 GB. Um par de arquivos de log de 255 GB, por exemplo, aproxima-se do limite, mas não o excede. 
+O tamanho padrão do arquivo de log é 48 MB que no meu ponto de vista é muito pequeno.
+
+Portanto,  innodb_log_file_size = 2G terá 4GB de espaço de log, dos quais o MySQL usará cerca de 3,24GB (o MySQL faz reservas extras para evitar uma situação em que ficarmos totalmente sem espaço de log).
+
+-- 
+
+OBS> Considere aumentar o tamanho do buffer de log tambem. Um buffer de log grande permite que grandes transações sejam executadas sem a necessidade de gravar o log em disco 
+antes da confirmação das transações (commit). Assim, se você tiver transações que atualizam, inserem ou excluem muitas linhas, aumentar o buffer de log economiza E/S de disco. 
+O tamanho do buffer de log é configurado usando a opção de configuração innodb_log_buffer_size.
+
+O padrão de instalação é 1MB, mas geralmente 8MB estará de bom tamanho para melhorar a performance. Ja vi locais configurados com 10 e 20MB, mas constumo trabalhar com 8MB.
+
+Para verificar a configuração atual, rode:
+SHOW GLOBAL VARIABLES 
+LIKE 'innodb_log_buffer_size';
+
+Para alterar, basta mudar a option innodb_log_buffer_size no my.ini ou my.cnf, colocando o valor de bytes.
+
+# VAMOS MUDAR O PADRAO DO MYSQL
+innodb_log_buffer_size=8M
+
+Desde o MySQL 5.0 existe um status chamado Innodb_log_waits . Esse status mostra o número de vezes que o buffer de log foi muito pequeno. 
+
+SHOW GLOBAL STATUS 
+LIKE 'innodb_log_waits';
+
+Se este valor for 0 ou próximo , innodb_log_buffer_size está bem definido. Se for alto e crescer continuamente, aumente o valor desta variavel no my.ini
+
+-- --
+
+Desativando o Redo Logging
+A partir do MySQL 8.0.21, você pode desabilitar o redo logging usando a instrução ALTER INSTANCE DISABLE INNODB REDO_LOG no workbench. 
+Essa funcionalidade destina-se ao carregamento de dados geralmente usada em lote, em uma nova instância do MySQL.
+ A desativação do redo logging acelera o carregamento de dados, evitando gravações de redo log e buffer.
+
+ALTER INSTANCE DISABLE INNODB REDO_LOG;
+
+Depois de carregado os dados em um processo de de batch ou por exemplo na migracao dos dados para outro banco ou outra instalacao do MYSQL
+nao esqueca de ligar novamente.
+
+ALTER INSTANCE ENABLE INNODB REDO_LOG;
+
+Aviso
+Esse recurso destina-se apenas ao carregamento de dados em uma nova instância do MySQL ou para outro banco de dados na mesma instancia MYSQL. 
+Não desative o log de redo em um sistema de produção. 
+É permitido desligar e reiniciar o servidor enquanto o redo logging estiver desabilitado, mas uma interrupção inesperada do servidor enquanto o redo logging 
+estiver desabilitado pode causar perda de dados e corrupção de instância.
+
+-- --
+
+- innodb_flush_log_at_trx_commit (default 1)
+
+innodb_flush_log_at_trx_commit=1
+
+Por padrao, cada comando simples de insert, delete e update é auto comitável (commit implicit) pelo MYSQL, e de forma sincrona, ou seja, ao mesmo tempo que os dados sao inseridos, 
+alterados ou deletados na memória (area de buffer pool e buffer do log), já é feito flush no disco no arquivo fisico do log (redo log). Em transacoes grandes com begin e commit, as transaçoes sao
+da mesma forma garantidas no disco, de forma sincrona com os dados alterados em memória, quando o comando commit ou rollback é aplicado.
+
+Como falamos, operaçoes de I/O é o maior problema para performance de banco de dados, porque envolve neste caso
+a gravaçao de todas as transacoes que alteram dados, no disco, e se o disco for lento e estiver sendo usado ao mesmo tempo para a gravacao dos dados nas tabelas, o impacto é 
+ainda maior. Uma alternativa é mudar o padrão desta variável para 0 ou 2 (2 é um pouco mais performatico que 0). De qualquer forma, o mysql irá ler o buffer do log que está na memória,
+a cada 1 segundo em média, e as transacoes que estão marcadas como commit serão gravadas no disco, nos files do redo log, então no pior os casos, em caso de perda de energia do 
+servidor, iria perder em média o ultimo 1 segundo de transacao, se alterar para 0 ou 2.
+
+- vantagens: ganho de performance se colocar 0 ou 2. 
+- desvantagens: se houver perda de energia por exemplo, todos os dados em memória e que nao estavam no arquivo de log no disco, serão perdidos, entao no pior caso
+                poderá perder 1 segundo de dados. Em sistemas criticos como bancos, isto é inaceitável, mas poderá ser usado em sistemas não criticos, com ganhos de performance
+                se não existe grandes problemas em perder 1 segundos de dados ou algo proximo deste tempo.
+
+Resumindo:
+O valor padrão innodb_flush_log_at_trx_commit de 1 é necessário para total conformidade com ACID. Você pode obter um melhor desempenho definindo o valor diferente de 1, mas pode perder até um segundo 
+de transações em uma falha. Com um valor de 0, qualquer falha do processo mysqld pode apagar o último segundo das transações. 
+Com um valor de 2, apenas uma falha do sistema operacional ou uma queda de energia pode apagar o último segundo das transações. 
+A recuperação de falhas do InnoDB funciona independentemente do valor, porque todas as transacoes antes de serem gravadas nos arquivos finais do banco, são gravadas no redo log e
+sempre no restart do mysql, as transacoes que estão nos files do redo log são checados para serem garantidos nos files do banco ou é feito rollback para deixar o banco integro.
+
+Em um ambiente de missão critica, que tem mysql configurados em um cluster, onde nenhuma transação possa ser perdida, inclusive na replicação para servidores escravos,
+deve usar as options innodb_flush_log_at_trx_commit=1 e sync_binlog=1 em seu arquivo my.cnf ou my.ini, do servidor mestre. Em ambientes que por exemplo, podem perder 1 segundo
+de dados, inclusive não precisa esperar um servidor escravo retornar para o servidor principal que a transacao foi comitada, poderá para ganhos maiores de performance nas
+gravaçoes, trabalhar com innodb_flush_log_at_trx_commit=2 e sync_binlog=0. Ambientes de BI e blogs por exemplo, são tipicos neste caso, principalmente se os processos leem o servidor escravo para
+processar os cubos (Data warehouse) e relatórios, ou mesmo em ambientes que nao tem servidores escravos que recebem dados replicados de servidores master e nao se preoculpa em perder
+segundos de transacoes quando precisar retornar backups incrementais com bin_logs files, pode configurar innodb_flush_log_at_trx_commit=2 e sync_binlog=0 que terá ganhos de performance
+em operacoes de escrita (insert, delete e update).
+
+Um valor innodb_flush_log_at_trx_commit de 0 é uma escolha rápida, mas menos segura. Qualquer falha no processo mysqld pode apagar o último segundo das transações, mas se nao houver falha de sistema operacional ou energia, nenhuma transacao '
+é perdida.
+Um valor innodb_flush_log_at_trx_commit de 1 é a escolha mais segura porque, no caso de uma falha, você perde no máximo uma instrução ou transação do log binário (para replicacao). No entanto, também é a escolha mais lenta.
+Um valor innodb_flush_log_at_trx_commit de 2 é uma escolha rápida e mais seguro que 0. Apenas uma falha do sistema operacional ou uma queda de energia pode apagar o último segundo das transações.
+
+Um valor sync_binlog=1 que é o default, faz com que o mysql a cada transacao comitada grava de forma sincrona as transacoes para os arquivos de binlog que servem para replicacao das
+transacoes para outros servidoes mysql, caso existam, e serve para restaurar um backup incremental para nao perder a ultima transacao. Esta configuracao é mais segura mais é menos
+performatica. Se mudar para 0, o proprio sistema operacional irá fazer este controle de gravar as transacoes que estao na memoria para o arquivo bin log de forma assincrona, o que 
+traz ganhos de performance na escrita mas podem trazer perda de transacoes em caso de crash do mysql, sistema operacional ou energia.
+
+fonte
+https://dev.mysql.com/doc/refman/5.7/en/replication-options-binary-log.html
+
+Sua escolha mais segura é, mas é a menos performática, para configurar o my.ini:
+
+[mysqld]
+innodb_flush_log_at_trx_commit=1
+sync_binlog=1
+
+Atencao:
+Muitos sistemas operacionais e alguns hardwares de disco enganam a operação de liberação para disco. Eles podem dizer ao mysqld que o flush ocorreu, mesmo que não. 
+Então a durabilidade das transações não é garantida mesmo com a configuração 1, e na pior das hipóteses uma queda de energia pode até corromper o banco de dados InnoDB. 
+O uso de um cache de disco alimentado por bateria no controlador de disco SCSI ou no próprio disco acelera a liberação de arquivos e torna a operação mais segura. 
+Verifique com sua equipe de infraestrutura.
+
+-- ----
+
+innodb_flush_method
+
+Em ambientes Linux, voce pode mudar o valor deste parametro para minimizar a necessidade de acesso ao disco para buscar dados, porque terá mais memoria livre para armazenar mais dados.
+Os dados por padrao são gravados no buffer cache do mysql e no cache
+do sistema operacional (linux), ou seja, o mesmo dado é ocupado duas vezes na memória do servidor, o que pode representar perda de memória, já que o mesmo dados está ocupado
+dois espacos diferentes de memória, muitas vezes aumentando a necessidade de leitura do dados em disco, já que faltou memória ram para todos os dados.
+
+Alterar para: (my.cnf)
+
+innodb_flush_method=O_DIRECT 
+
+-- ---
+
+- innodb_io_capacity (default 200) controla quantas operacoes de gravacao (write) I/O o mysql vai fazer no disco, sendo limitado por padrao há apenas 200
+  e innodb_io_capacity_max (default 400) limita a quantidade maxima de 400 gravacoes no disco por segundo, quando o disco estiver sobrecarregado. 
+
+Valor padrão é MUITO baixo porque é a velocidade de um disco bem lento.
+
+-  Deve verificar a velocidade do disco e aumentar este valor e monitorar o ambiente.
+
+- Geralmente com discos magneticos em raid 10 por exemplo, em média é 15k, ou seja, em média 1000 de iops(operacoes de entrada e saida por segundo). 
+Neste caso, pode definir valor de innodb_io_capacity entre 500 e 750 (50 a 75% do valor total de capacidade do disco) 
+e innodb_io_capacity_max para 1000 (ou seja, capacidade máxima do disco, ou a 85% a 100% do valor total e monitorar o ambiente em momentos de pressao no disco).
+
+- Sistemas de disco SSD corporativos baratos, tem velocidades entre 4.000 e 10.000 IOPS, então, se estiver rodando MYSQL em discos SSD, com certeza devem alterar os valores padrao.
+
+Pode alterar a quente através do set persist innodb_io_capacity=750, por exemplo,  e deve salvar depois no my.ini ou my.cnf para ser persistente mesmo depois do restart do mysqt.
+
+OBS: EXISTEM PROGRAMAS GRATUITOS QUE VERIFICAM A VELOCIDADE DO SEU DISCO E REALIZAM TESTES. Como exemplo:
+
+windows: https://www.pcguia.pt/2021/06/como-testar-o-desempenho-dos-discos-rigidos-no-windows-10-com-o-diskspd/
+Linux: https://elias.praciano.com/2014/09/como-verificar-o-desempenho-do-hd-no-linux/
+
+Mas fale com sua equipe de infra para verificar a velocidade do seu disco (maximo I/O por segundo, para aumentar a configuracao do seu mysql para utilizar a capacidade maxima de velocidade do seu disco.
+
+-- --------------------------------------------------------------------------------------------------------------------------------------
+
+-- 1.2 table open cache
+https://dev.mysql.com/doc/refman/5.7/en/table-cache.html#:~:text=The%20cache%20of%20open%20tables,described%20later%20in%20this%20section.
+ver item 8.4.3.1 Como o MySQL Abre e Fecha Tabelas
+
+O MySQL é multithread, então pode haver muitos clientes emitindo consultas para uma determinada tabela simultaneamente. 
+Para minimizar o problema com várias sessões de clientes com estados diferentes na mesma tabela, a tabela é aberta independentemente por cada sessão simultânea. 
+Isso usa memória adicional, mas normalmente aumenta o desempenho.
+
+As variáveis table_open_cache ​​e max_connections do sistema afetam o número máximo de arquivos que o servidor MYSQL mantém abertos que já alocam memória do SO.
+
+-- Pode aumentar no my.ini em table_open_cache=??? padrao 2000
+
+table_open_cache está relacionado com max_connections, porque quantos mais conexoes simultaneas de clientes, mais objetos serao abertos no cache.
+
+Para determinar se seu cache de tabela é muito pequeno, verifique a variável Opened_tables de status, que indica o número de operações de abertura de tabela desde que o 
+servidor foi iniciado:
+
+mysql> SHOW GLOBAL STATUS LIKE 'Opened_tables';
+
+Se o valor for muito grande ou aumentar rapidamente, aumente o valor de table_open_cache na inicialização do servidor
+ou no workbench verifique no PERFORMANCE DASHBOARD, o percentual de eficiencia do grafico da variavel table open cache. Se estiver baixo, 
+aumente o valor da varivel table_open_cache no my.ini
+https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_table_open_cache
+
+-- -----------------------------------------------------------------------------------------------------------------------------------------------
+
+DICAS:
+- O PADRAO DAS OPTIONS QUE VEM DA INSTALACAO, DEVEM SER ALTERADAS, PORQUE EM GERAL NAO APROVEITAM OS RECURSOS DISPONIVEIS DOS SERVIDORES, COMO MEMORIA POR EXEMPLO
+- MAS NAO ALTERE VARIAS OPTIONS AO MESMO TEMPO, PORQUE AO CONTRÁRIO, DEPENDENDO DA MUDANCA, PODE TRAZER PROBLEMAS DE PERFORMANCE, E COMO ALTEROU VARIOS OPTIONS
+  AO MESMO TEMPO, PODE SER DIFICIL DESCOBRIR QUAL FOI A OPTION QUE TROUXE O IMPACTO NEGATIVO OU MESMO POSITIVO. ALTERE UM DE CADA VEZ E DE UM TEMPO E VERIFIQUE COM 
+  OS USUÁRIOS SE PERCEBERAM MUDANCAS E MONITORE O AMBIENTE.
+- PARA OPTIONS QUE PODEM SER ALTERADAS A QUENTE, SEM NECESSIDADE DE ALTERAR O MY.INI, PARAR O MYSQL E DAR START, TENTE FAZER E VERIFIQUE COM SEUS USUARIOS E MONITORE
+  O AMBIENTE, A FIM DE VERIFICAR SE REALMENTE A MUDANÇA TRARÁ IMPACTO POSITIVO. QUAL POSITIVO, ALTERE O MY.INI E AGENDE A PARADA DO MYSQL SERVICE. CASO CONTRÁRIO,
+  JÁ RETORNE PARA O PARAMETRO ANTERIOR, A QUENTE, NO PROPRIO WORKBENCH.
+- ANTES DE ALTERAR O MY.INI FAÇA UM BACKUP DO ARQUIVO, POIS PODERÁ PRECISAR RETORNAR PARA VERSÃO ANTERIOR RAPIDAMENTE, CASO O MYSQL SERVICE NAO SUBIR.
+- CUIDADO PARA NAO DUPLICAR A MESMA OPTION DENTRO DO MY.INI PORQUE O VAI VAR SER APLICADO SERÁ A ULTIMA OPTION E AS VEZES É DIFICIL ACHAR PORQUE NAO FOI ALTERADO A CONFIGURACAO.
+- PONHA TODAS AS OPTIONS RELATIVAS AO SERVIDOR MYSQL SOB O ROTULO [mysqld]
+
+-- -------------------------------------------------------------------------------------------------------------------------------------------------
+
+1.3 Network Status
+Isso destaca as estatísticas do tráfego de rede enviado e recebido pelo servidor MySQL nas conexões do cliente. 
+Os pontos de dados incluem o Tráfego de Rede de Entrada, Tráfego de Rede de Saída e Conexões de Cliente .
+
+-- -----------------------------------
+
+1.4 SQL Statements Executed
+contagens (por segundo) das instruções SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER e DROP que sao executadas pelo MYSQL
+
+1.5 client connections (total).
+se bateu no limite de conexoes de clients, pode aumentar no my.ini em max_connections=???
+
+-- -----------------------------------
+
+-- 2. MySQL Enterprise Performance Reports
+
+-- 3. MySQL Enterprise Performance Setup
+
+-- 4. MYSQL SERVER STATUS
+-- ------------------------------------------------------------------------------------------------------------------------
+
+--fim
+
+
